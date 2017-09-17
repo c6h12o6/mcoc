@@ -1,3 +1,8 @@
+
+// The seatin package correlates a given hero to his
+// defender quality. Note: this is based on seatin's 
+// defender ranking, but modified given my opinion
+// and was not created with any direct input from seatin
 package seatin
 
 import . "helloworld/globals"
@@ -108,6 +113,7 @@ var levels = map[HeroVal]int {
     Hood : 3,
 }
     
+// Get the defender level for a given heroval
 func GetLevel(val HeroVal) int {
     ret, ok := levels[val]
     if !ok {
