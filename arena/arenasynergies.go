@@ -36,7 +36,7 @@ var depthcount []int
 
 // combinations is a helper function for creating all possible combinations of
 // values from "iterable" in groups of "r"
-func combinations(iterable []int, r int) [][]int {
+func Combinations(iterable []int, r int) [][]int {
     var ret [][]int
 
     pool := iterable

@@ -8,6 +8,7 @@ import "sort"
 import "time"
 import "sync"
 import "runtime"
+import "github.com/bradfitz/slice" 
 
 type Champ struct {
   champ HeroVal
@@ -32,8 +33,8 @@ var bg1_2 = map[string][]Champ {
     Champ{CosmicGhostRider, 6, 3, 20},
     Champ{Terrax, 5, 5, 200},
     Champ{Mojo, 5, 5, 200},
-    Champ{Guillotine2099, 6, 2, 0},
-    Champ{Guardian, 5, 5, 200},
+    //Champ{Guillotine2099, 6, 2, 0},
+    //Champ{Guardian, 5, 5, 200},
   },
   "dhdhqqq": []Champ{
     Champ{Longshot, 6, 3, 60},
@@ -48,7 +49,7 @@ var bg1_2 = map[string][]Champ {
     Champ{Tigra, 6, 2, 0},
     Champ{Guillotine2099, 6, 2, 0},
     //NickFury: Champ{NickFury, 5, 5, 1},
-  },
+  }, 
   "TomJenks": []Champ {
     Champ{Thing, 6, 3, 200},
     Champ{HitMonkey, 6, 3, 20},
@@ -66,6 +67,27 @@ var bg1_2 = map[string][]Champ {
     Champ{Tigra, 5, 5, 20},
     Champ{Domino, 6, 2, 20},
   },
+  "LivingArtiface": []Champ{
+    Champ{SilverSurfer, 5, 5, 20},
+    Champ{DoctorDoom, 5, 5, 20},
+    //Champ{SpiderManStealth, 5, 5, 20},
+    //Champ{CaptainMarvelMovie, 5, 5, 20},
+    //Namor: Champ{Namor, 5, 5, 20},
+    Champ{Void, 5, 5, 20},
+    Champ{ProfessorX, 5, 5, 20},
+    //Thing: Champ{Thing, 5, 5, 20},
+    Champ{SymbioteSupreme, 5, 5, 20},
+    Champ{Havok, 5, 5, 20},
+    //NickFury: Champ{NickFury, 5, 5, 20},
+    Champ{Magneto, 5, 5, 20},
+    Champ{Warlock, 5, 5, 20},
+    Champ{CosmicGhostRider, 6, 2, 0},
+    Champ{Venom, 5, 5, 20},
+    //Apocalypse: Champ{Apocalypse, 6, 2, 0},
+    Champ{Guillotine2099, 6, 3, 0},
+    Champ{Hyperion, 5, 5, 20},
+    //Dragonman: Champ{Dragonman, 5, 5, 0},
+  }, 
 }
 
 var bg1 = map[string]map[HeroVal]Champ {
@@ -158,6 +180,96 @@ var bg1 = map[string]map[HeroVal]Champ {
 
 }
 
+ // combinations is a helper function for creating all possible combinations of
+ // values from "iterable" in groups of "r"
+ func combinations(iterable []int, r int) [][]int {                                             
+     var ret [][]int
+ 
+     pool := iterable
+     n := len(pool)
+ 
+     if r > n {
+         return [][]int {}
+     }
+ 
+     indices := make([]int, r)
+     for i := range indices {
+         indices[i] = i
+     }
+ 
+     result := make([]int, r)
+     for i, el := range indices {
+         result[i] = pool[el]
+     }
+ 
+     tmp := make([]int, len(result))
+     copy(tmp, result)
+     ret = append(ret, tmp)
+ 
+     for {
+         i := r - 1
+         for ; i >= 0 && indices[i] == i+n-r; i -= 1 {
+         }
+ 
+         if i < 0 {
+             break
+         }
+ 
+         indices[i] += 1
+         for j := i + 1; j < r; j += 1 {
+             indices[j] = indices[j-1] + 1
+         }
+ 
+         for ; i < len(indices); i += 1 {
+             result[i] = pool[indices[i]]
+         }
+         
+         tmp := make([]int, len(result))
+         copy(tmp, result)
+         ret = append(ret, tmp)
+     }
+     
+     return ret
+ }
+ 
+ // teamCombinations creates all combinations of all posssible champions
+ // into groups of "teamsize" and populates their synergy count
+ func teamCombinations(teamsize int, roster []Champ) []Defenders {
+     // TODO maybe only do this once
+     var indices []int
+     var teams []Defenders
+ 
+     // Seriously, go does not have a way to create a slice of 1-n
+     // so you have to do this. gross
+     for ii := 0; ii < len(roster); ii++ {
+         indices = append(indices, ii)
+     }
+ 
+     // Now get the combinations you need, in the form of slices of ints
+     teamindices := combinations(indices, teamsize)
+ 
+     // Turn those slices of integers into slices of heroes
+     for _, teamnos := range teamindices {
+         team := Defenders{}
+				 var score float32
+         for _, idx := range teamnos {
+             team.champs = append(team.champs, roster[idx])
+             score += champScore(roster[idx])
+         }
+         team.score = score
+         // that has a synergy count of 0. They can't help our count
+         teams = append(teams, team)
+     }
+ 
+     // return the list in order of count, high to low
+     slice.Sort(teams, func(i, j int) bool {
+         return teams[i].score > teams[j].score
+     })
+ 
+     return teams
+ }
+
+
 func champValue(a Champ) float32 {
   if a.stars == 6 && a.level == 3 {
     return 10 + float32(a.sig)/200
@@ -201,6 +313,10 @@ func (pc PlayerChamp) PrettyPrint() string {
   return fmt.Sprintf("%s %s", pc.player, pc.champ.champ)
 }
 
+func (c Champ) String() string {
+  return fmt.Sprintf("%s (%v/%v)", c.champ.String(), c.stars, c.level)
+}
+
 func FormatNodes(nodes []PlayerChamp) string {
   s := make([]string, len(nodes))
   for n := 0; n < len(nodes); n++ {
@@ -217,7 +333,7 @@ func FormatBattleGroup(bg map[string]Defenders) string {
   var entries []string
   for p, d := range bg {
     var subentry []string
-    for h, _ := range d.champs {
+    for _, h := range d.champs {
       subentry = append(subentry, h.String())
     }
     entries = append(entries, fmt.Sprintf("%v: %v", p, strings.Join(subentry, ",")))
@@ -390,172 +506,160 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
   //return nodes, currentScore
 }
 type Defenders struct {
-  champs map[HeroVal]Champ
+  player string
+  champs []Champ
+  score float32
+}
+
+type PlayerDefenders struct {
+  player string
+  defenders Defenders
+}
+
+func (d *Defenders) String() string {
+  var ret []string
+  for _, c := range d.champs {
+    ret = append(ret, c.String())
+  }
+  ret = append(ret, fmt.Sprintf("%v", d.score))
+  return strings.Join(ret, ",")
 }
 
 
 func copyDefenders(d Defenders) Defenders {
-  ret := map[HeroVal]Champ{}
-  for h, c := range d.champs {
-    ret[h] = c
-  }
-  return Defenders{champs: ret}
-}
-
-func copyBattleGroup(r map[string]Defenders)  map[string]Defenders {
-  ret := map[string]Defenders{}
-  for p, d := range r {
-    ret[p] = copyDefenders(d)
+  ret := Defenders{score: d.score}
+  for _, c := range d.champs {
+    ret.champs = append(ret.champs, c)
   }
   return ret
 }
 
-type BGScore struct {
+func copyDiversity(d map[HeroVal]bool) map[HeroVal]bool {
+  ret := map[HeroVal]bool{}
+  for k,v := range d {
+    ret[k] = v
+  }
+  return ret
+}
+
+type memoItem2 struct {
+  pds []PlayerDefenders
   score float32
-  battleGroup map[string]Defenders
+  err error
+  callArgs Defenders
 }
 
-func (bg BGScore) String() string {
-  return fmt.Sprintf("--\n%v\n%v\n--\n", bg.score, FormatBattleGroup(bg.battleGroup))
+var memo2 = map[string]memoItem2 {}
+
+func getMemoKey(diversity map[HeroVal]bool, players []string) string {
+  var ret []string
+  for h, _ := range diversity {
+    ret = append(ret, h.String())
+  }
+  sort.Strings(ret)
+  key := strings.Join(ret, ",") + "," + strings.Join(players, ",")
+  //fmt.Printf("%v\n", key)
+  return key
 }
 
-func (bg BGScore) Merge(start map[string]Defenders, players []string) BGScore {
-  if bg.score == 0 {
-    return bg
-  }
-  ret := copyBattleGroup(bg.battleGroup)
-  for p, d := range bg.battleGroup {
-    for h, c := range d.champs {
-      //fmt.Printf("%v %v %v\n%v\n", p, h, c, ret)
-      ret[p].champs[h] = c
-    }
-  }
-
-  count := 0
-  var score float32
-  for _, d := range ret {
-    for _, c := range d.champs {
-      count++
-      score += champScore(c)
-    }
-  }
-
-  if count > 10 {
-    fmt.Printf("===FUCK\n%v\n---\n%v\n---\n%v\n===\n", FormatBattleGroup(bg.battleGroup), FormatBattleGroup(start), FormatBattleGroup(ret))
-  }
-
-  return BGScore{score, ret}
-}
-
-
-var memo2 =map[string]BGScore{}
-
-func recordMemo2(start map[string]Defenders, score BGScore) {
-  var hashKeys []string
-  for _, d := range start {
-    for h, _ := range d.champs {
-      hashKeys = append(hashKeys, h.String())
-    }
-  }
-  sort.Strings(hashKeys)
-  key := strings.Join(hashKeys, ",")
-
+func recordMemo2(memoKey string, pds []PlayerDefenders, score float32, err error, callArgs Defenders) {
   memoLock.Lock()
-  memo2[key] = score
+  memo2[memoKey] = memoItem2{pds: pds, score: score, err: err, callArgs: callArgs}
   memoLock.Unlock()
 }
 
-func findBestRoster(ch chan BGScore, battleGroup map[string]Defenders, players []string) BGScore {
-  diversity := map[HeroVal]bool{}
-  var currentScore float32
-  bestScore := BGScore{score: 0}
-  var hashKeys []string
-  newCh := make(chan BGScore)
+var first = map[string]bool{}
+
+func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string][]Champ, players []string, callArgs Defenders) ([]PlayerDefenders, float32, error) {
+  best := []PlayerDefenders{}
+  var bestScore float32
+  newCh := make(chan memoItem2)
   var calls int
 
-  for _, d := range battleGroup {
-    for h, c := range d.champs {
-      diversity[h] = true
-      currentScore += champScore(c)
-      hashKeys = append(hashKeys, h.String())
-    }
-  }
+  memoKey := getMemoKey(diversity, players)
 
-  if len(diversity) == len(bg1_2) * playerMax {
-    //fmt.Printf("Done!\n")
-    ret :=  BGScore{score: currentScore, battleGroup: battleGroup}
-    ch <- ret
-    return ret
-  }
-
-  sort.Strings(hashKeys)
-  key := strings.Join(hashKeys, ",")
-  //fmt.Printf("key %v\n", key)
   memoLock.Lock()
-  m, ok := memo2[key]
+  mi, ok := memo2[memoKey]
   memoLock.Unlock()
-
   if ok {
     memoCount++
     if memoCount % 100 == 0 {
-      fmt.Printf("%v\n", key)
       fmt.Printf(".")
     }
-    merged := m.Merge(battleGroup, players)
-    ch <- merged
-    return merged
+    return mi.pds, mi.score, mi.err
   }
 
-  for _, player := range players {
-    champset := bg1_2[player]
-    // Players can only have 5 champs on the map
-    if _, ok := battleGroup[player]; ok {
-      if len(battleGroup[player].champs) == playerMax {
-        //fmt.Printf("continuing away from player %v\n", player)
+  if len(players) != 0 {
+    p := players[0]
+    //fmt.Printf("player %v\n", p)
+    playerChamps := roster[p]
+    //fmt.Printf("playerChamps: %v", playerChamps)
+    var reducedChamps []Champ
+    for _, c := range playerChamps {
+      if _, ok := diversity[c.champ]; ok {
         continue
       }
-    } else {
-      battleGroup[player] = Defenders{}
+      
+      reducedChamps = append(reducedChamps, c)
     }
-
-    //added := false
-    for _, c := range champset {
-      h := c.champ
-      // Don't add it if it's already in the battle group
-      if _, ok := diversity[h]; ok {
-        continue
+    if len(reducedChamps) < playerMax {
+      recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
+      ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
+      return nil, 0, fmt.Errorf("No valid teams")
+    }
+    combos := teamCombinations(playerMax, reducedChamps)
+    if _, ok := first[p]; !ok {
+      first[p] = true
+      fmt.Printf("%v %v %v\n", p, len(reducedChamps), len(combos))
+    }
+    for _, d := range combos {
+      newDiversity := copyDiversity(diversity)
+      for _, champ := range d.champs {
+        newDiversity[champ.champ] = true
       }
-
-      //added = true
-      newBG := copyBattleGroup(battleGroup)
-      newBG[player].champs[h] = c
-
-
       calls++
-      go findBestRoster(newCh, newBG, players)
+      go findBestBG(newCh, newDiversity, roster, players[1:], d)
     }
-
-    //fmt.Printf("Waiting for %v calls (%v)\n", calls, len(diversity))
     for ; calls > 0; calls-- {
       select {
-      case result := <-newCh:
-        if result.score > bestScore.score {
-          bestScore = result
+      case mi := <-newCh:
+        result, newScore, err, ca := mi.pds, mi.score, mi.err, mi.callArgs
+        //fmt.Printf("result: %v ca: %v\n", result, ca)
+        if err != nil {
+          continue
+        }
+        if newScore + ca.score > bestScore {
+          bestScore = newScore + ca.score
+          best = append(result, PlayerDefenders{player: p, defenders: ca})
         }
       }
     }
-    break
   }
-  //fmt.Printf("Returning %v\n", bestScore)
-  if len(diversity) % playerMax == 0 {
-    recordMemo2(battleGroup, bestScore)
-  }
-  ch <- bestScore
-  return bestScore
+  recordMemo2(memoKey, best, bestScore, nil, callArgs)
+  ch <- memoItem2{pds: best, score: bestScore, err: nil, callArgs: callArgs}
+  //fmt.Printf("returning at end\n")
+  return best, bestScore, nil
 }
 
-
 func main() {
+
+  ch := make(chan memoItem2)
+  t := time.Now()
+  //combos := teamCombinations(5, bg1_2["sugar"], "sugar")
+  //result, score, err := findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"})
+  go findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"}, Defenders{})
+  select {
+  case mi := <-ch:
+    result, score, _ := mi.pds, mi.score, mi.err
+
+    d := time.Now().Sub(t)
+    for _, pd := range result {
+      fmt.Printf("%s: %s\n", pd.player, pd.defenders.String())
+    }
+    fmt.Printf("Took %v for %v combos\n", d, len(result))
+    fmt.Printf("Score: %v\n", score)
+  }
+  /*
   var players []string
   for p, _ := range bg1_2 {
     players = append(players, p)
@@ -582,4 +686,5 @@ func main() {
   fmt.Printf("%v\n", score)
   fmt.Printf("Took %v\n", d)
   //fmt.Printf("Trying %v Trying 2 %v\n", tryingCount, trying2Count)
+  */
 }
