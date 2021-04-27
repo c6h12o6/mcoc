@@ -7,6 +7,7 @@ import "strings"
 import "sort"
 import "time"
 import "sync"
+import "runtime"
 
 type Champ struct {
   champ HeroVal
@@ -15,7 +16,7 @@ type Champ struct {
   sig   int32
 }
 
-var playerMax = 3
+var playerMax = 5
 
 type PlayerChamp struct {
   player string
@@ -155,6 +156,34 @@ func (pc PlayerChamp) PrettyPrint() string {
   return fmt.Sprintf("%s %s", pc.player, pc.champ.champ)
 }
 
+func FormatNodes(nodes []PlayerChamp) string {
+  s := make([]string, len(nodes))
+  for n := 0; n < len(nodes); n++ {
+    s[n] = fmt.Sprintf("%v:\t%s", n+1, nodes[n].PrettyPrint())
+  }
+  return strings.Join(s, "\n")
+}
+
+func PrintNodes(nodes []PlayerChamp) {
+  fmt.Printf(FormatNodes(nodes) + "\n")
+}
+
+func FormatBattleGroup(bg map[string]Defenders) string {
+  var entries []string
+  for p, d := range bg {
+    var subentry []string
+    for h, _ := range d.champs {
+      subentry = append(subentry, h.String())
+    }
+    entries = append(entries, fmt.Sprintf("%v: %v", p, strings.Join(subentry, ",")))
+  }
+  return strings.Join(entries, "\n")
+}
+
+func PrintBattleGroup(bg map[string]Defenders) {
+  fmt.Printf(FormatBattleGroup(bg) + "\n")
+}
+
 func (pc PlayerChamp) String() string {
   return pc.PrettyPrint()
 }
@@ -178,9 +207,9 @@ var totalCalls int
 var tryingCount int
 var trying2Count int
 
-func recordMemo(diversity map[HeroVal]bool, newChamp HeroVal, score float32, nodes []PlayerChamp) memoItem {
-  hashKeys :=  []string{string(newChamp)}
-  var depth int
+func recordMemo(depth int, newChamp HeroVal, score float32, nodes []PlayerChamp, tail bool) memoItem {
+  //hashKeys :=  []string{newChamp.String()}
+  var hashKeys []string
   for n := len(nodes) - 1; n >= 0; n-- {
     h := nodes[n]
     if h.champ.champ == MaxHeroVal {
@@ -191,7 +220,7 @@ func recordMemo(diversity map[HeroVal]bool, newChamp HeroVal, score float32, nod
       continue
     }
 
-    hashKeys = append(hashKeys, fmt.Sprintf("%s", h.champ.champ))
+    hashKeys = append(hashKeys, h.champ.champ.String())
   }
   sort.Strings(hashKeys)
   m := memoItem{score, copyNodes(nodes)}
@@ -199,13 +228,19 @@ func recordMemo(diversity map[HeroVal]bool, newChamp HeroVal, score float32, nod
   memoLock.Lock()
   memo[key] = m
   memoLock.Unlock()
-  fmt.Printf("Recording %v\n", key)
+  //fmt.Printf("Recording %v %v\n", key, tail)
+  /*
+  if depth == 0 {
+    fmt.Printf("===\nDepth was 0: %v\n===\n", FormatNodes(nodes))
+  }
+  */
   return m
 }
 
 func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
   diversity := map[HeroVal]bool{}
   playerCounts := map[string]int{}
+  var champCount int
   var hashKeys []string
   var currentScore float32
   bestNodes := make([]PlayerChamp, len(nodes))
@@ -220,13 +255,24 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
       diversity[nodes[n].champ.champ] = true
       currentScore += champScore(nodes[n].champ)
       bestNodes[n] = nodes[n]
-      hashKeys = append(hashKeys, fmt.Sprintf("%s", nodes[n].champ.champ))
       playerCounts[nodes[n].player]++
+      if nodes[n].champ.champ != Empty {
+        champCount++
+        hashKeys = append(hashKeys, nodes[n].champ.champ.String())
+      }
       continue
     }
+    //fmt.Printf("----\n%v\n%v\n%v\n", FormatNodes(nodes), playerCounts, champCount)
+    if champCount == len(bg1) * playerMax {
+      //fmt.Printf("Donezo\n")
+      mi := recordMemo(n, Empty, currentScore, nodes, false)
+      ch <- mi
+      return
+    }
+
     totalCount++
     if totalCount % 1000000 == 0 {
-      fmt.Printf("%v %v %v %v\n%v\n", totalCount, n, len(memo), totalCalls, nodes)
+      fmt.Printf("%v %v %v %v\n%v\n%v\n", totalCount, n, len(memo), totalCalls, FormatNodes(nodes), runtime.NumGoroutine())
     }
     sort.Strings(hashKeys)
     key := fmt.Sprintf("%v:%v", n, strings.Join(hashKeys, ","))
@@ -234,10 +280,10 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
     m, ok := memo[key]
     memoLock.Unlock()
 
-    fmt.Printf("Checking %v %v\n", key, ok)
+    //fmt.Printf("Checking %v %v\n", key, ok)
     if ok {
       memoCount++
-      if memoCount % 1000 == 0 {
+      if memoCount % 10000 == 0 {
         fmt.Printf(".")
       }
       ch <- m
@@ -245,44 +291,25 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
     }
     bestScore := currentScore
 
-/*
-    for ; totalCalls > 500000;  {
-      waits++
-      if waits % 60 == 0 {
-        fmt.Printf("! %v\n", waits)
-      }
-      time.Sleep(time.Minute)
-    }
-    */
-    //fmt.Printf("diversity %v\n", diversity)
-
     for _, hero := range Nodes[n+1] {
       // Find the best one of this champ in the BG
       if diversity[hero] {
-        //fmt.Printf("Skipping %s\n", hero)
         continue
       }
       for player, champset := range bg1 {
         // Players can only have 5 champs on the map
         if playerCounts[player] == playerMax {
-          //fmt.Printf("%v is tapped out\n", player)
           continue
         }
-        //fmt.Printf("player: %v, %v\n", player, champset)
         if hero != MaxHeroVal {
-          //fmt.Printf("nope\n")
-          //fmt.Printf("!!: %v\n", champset[hero])
 
           if c, ok := champset[hero]; ok {
-            //fmt.Printf("hi\n")
+           // fmt.Printf("hi\n")
             nodes[n] = PlayerChamp{player: player, champ: c}
 
             calls++
             totalCalls++
             tryingCount++
-            if totalCalls % 10000 == 0 {
-              //fmt.Printf("Trying  %v at node %v\n", nodes[n].PrettyPrint(), n)
-            }
 
             go findBestNodes(newCh, copyNodes(nodes))
           }
@@ -294,42 +321,9 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
           trying2Count++
           go findBestNodes(newCh, copyNodes(nodes))
         }
-
-        /*else {
-          for h, c := range champset {
-            if diversity[h] {
-              continue
-            }
-
-            nodes[n] = PlayerChamp{player: player, champ: c}
-            //u, _ := uuid.NewV4()
-            //fmt.Printf("%s Trying2  %v at node %v\n%v", u, nodes[n].PrettyPrint(), n, nodes)
-            calls++
-            totalCalls++
-            if totalCalls % 10000 == 0 {
-              //fmt.Printf("Trying2  %v at node %v\n", nodes[n].PrettyPrint(), n)
-            }
-            trying2Count++
-            go findBestNodes(newCh, copyNodes(nodes))
-          }
-        }
-        */
       }
-      /*
-      for ; calls > 0; calls-- {
-        select {
-          case result := <-newCh:
-            totalCalls--
-            newNodes, newScore := result.nodes, result.score
-            if newScore > bestScore {
-              bestNodes = newNodes
-              bestScore = newScore
-            }
-        }
-      }
-      */
     }
-    //fmt.Printf("Returning at node %v with score %v. %v\n", n, bestScore, len(bestNodes))
+
     for ; calls > 0; calls-- {
       select {
         case result := <-newCh:
@@ -342,7 +336,7 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
       }
     }
 
-    mi := recordMemo(diversity, bestNodes[n].champ.champ, bestScore, bestNodes)
+    mi := recordMemo(n, bestNodes[n].champ.champ, bestScore, bestNodes, true)
     ch <- mi
     return
     //return bestNodes, bestScore
@@ -350,24 +344,172 @@ func findBestNodes(ch chan memoItem, nodes []PlayerChamp) {
   ch <- memoItem{score: currentScore, nodes: nodes}
   //return nodes, currentScore
 }
+type Defenders struct {
+  champs map[HeroVal]Champ
+}
+
+
+func copyDefenders(d Defenders) Defenders {
+  ret := map[HeroVal]Champ{}
+  for h, c := range d.champs {
+    ret[h] = c
+  }
+  return Defenders{champs: ret}
+}
+
+func copyBattleGroup(r map[string]Defenders)  map[string]Defenders {
+  ret := map[string]Defenders{}
+  for p, d := range r {
+    ret[p] = copyDefenders(d)
+  }
+  return ret
+}
+
+type BGScore struct {
+  score float32
+  battleGroup map[string]Defenders
+}
+
+func (bg BGScore) String() string {
+  return fmt.Sprintf("--\n%v\n%v\n--\n", bg.score, FormatBattleGroup(bg.battleGroup))
+}
+
+func (bg BGScore) Merge(start map[string]Defenders, players []string) BGScore {
+  if bg.score == 0 {
+    return bg
+  }
+  ret := copyBattleGroup(bg.battleGroup)
+  for p, d := range start {
+    for h, c := range d.champs {
+      //fmt.Printf("%v %v %v\n%v\n", p, h, c, ret)
+      ret[p].champs[h] = c
+    }
+  }
+
+  var score float32
+  for _, d := range ret {
+    for _, c := range d.champs {
+      score += champScore(c)
+    }
+  }
+
+  return BGScore{score, ret}
+}
+
+
+var memo2 =map[string]BGScore{}
+
+func recordMemo2(start map[string]Defenders, score BGScore) {
+  var hashKeys []string
+  for _, d := range start {
+    for h, _ := range d.champs {
+      hashKeys = append(hashKeys, h.String())
+    }
+  }
+  sort.Strings(hashKeys)
+  key := strings.Join(hashKeys, ",")
+
+  memoLock.Lock()
+  memo2[key] = score
+  memoLock.Unlock()
+}
+
+func findBestRoster(battleGroup map[string]Defenders, players []string) BGScore {
+  diversity := map[HeroVal]bool{}
+  var currentScore float32
+  bestScore := BGScore{score: 0}
+  var hashKeys []string
+
+  for _, d := range battleGroup {
+    for h, c := range d.champs {
+      diversity[h] = true
+      currentScore += champScore(c)
+      hashKeys = append(hashKeys, h.String())
+    }
+  }
+
+  if len(diversity) == len(bg1) * playerMax {
+    //fmt.Printf("Done!\n")
+    return BGScore{score: currentScore, battleGroup: battleGroup}
+  }
+
+  sort.Strings(hashKeys)
+  key := strings.Join(hashKeys, ",")
+  memoLock.Lock()
+  m, ok := memo2[key]
+  memoLock.Unlock()
+
+  if ok {
+    memoCount++
+    if memoCount % 1000 == 0 {
+      fmt.Printf(".")
+    }
+    return m.Merge(battleGroup, players)
+  }
+
+  for _, player := range players {
+    champset := bg1[player]
+    // Players can only have 5 champs on the map
+    if _, ok := battleGroup[player]; ok {
+      if len(battleGroup[player].champs) == playerMax {
+        //fmt.Printf("continuing away from player %v\n", player)
+        continue
+      }
+    } else {
+      battleGroup[player] = Defenders{}
+    }
+
+    for h, c := range champset {
+      // Don't add it if it's already in the battle group
+      if _, ok := diversity[h]; ok {
+        continue
+      }
+
+      newBG := copyBattleGroup(battleGroup)
+      newBG[player].champs[h] = c
+
+      if player == "sugar" {
+        fmt.Printf("adding %v\n", h)
+        fmt.Printf("trying\n%v\n", FormatBattleGroup(newBG))
+        fmt.Printf("best\n%v\n", FormatBattleGroup(bestScore.battleGroup))
+      }
+
+      newScore := findBestRoster(newBG, players)
+      //fmt.Printf("result %v\n", newScore)
+      if newScore.score > bestScore.score {
+        //fmt.Printf("setting new score: %v", newScore)
+        bestScore = newScore
+      }
+    }
+    if bestScore.score == 0 {
+      //fmt.Printf("nothing workable. f\n")
+      recordMemo2(battleGroup, bestScore)
+      return bestScore
+    }
+  }
+  //fmt.Printf("Returning %v\n", bestScore)
+  recordMemo2(battleGroup, bestScore)
+  return bestScore
+}
+
 
 func main() {
-  nodes := make([]PlayerChamp, len(Nodes))
-  for n := len(Nodes) - 1; n >= 0; n-- {
-    nodes[n] = PlayerChamp{champ: Champ{champ: MaxHeroVal}}
+  var players []string
+  for p, _ := range bg1 {
+    players = append(players, p)
   }
+  fmt.Printf("players: %v\n", players)
+  players = []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface", "Yves", "Nino"}
 
-  ch := make(chan memoItem)
   t := time.Now()
-  go findBestNodes(ch, nodes)
-  result := <-ch
-  bestNodes, score := result.nodes, result.score
+  battleGroup := map[string]Defenders{}
+  score := findBestRoster(battleGroup, players)
+  //bestNodes, score := result.nodes, result.score
   d := time.Now().Sub(t)
 
-  for n := 0; n < len(bestNodes); n++ {
-    fmt.Printf("%v:\t%s\n", n+1, bestNodes[n].PrettyPrint())
-  }
+  //PrintNodes(bestNodes)
+
   fmt.Printf("%v\n", score)
   fmt.Printf("Took %v\n", d)
-  fmt.Printf("Trying %v Trying 2 %v\n", tryingCount, trying2Count)
+  //fmt.Printf("Trying %v Trying 2 %v\n", tryingCount, trying2Count)
 }
