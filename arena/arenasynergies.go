@@ -3,7 +3,7 @@
 package main
 
 import "fmt"
-import "mcoc/globals"
+import "../mcoc/globals"
 import "strings"
 import "github.com/bradfitz/slice"
 import "time"

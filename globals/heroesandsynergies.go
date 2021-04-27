@@ -10,11 +10,12 @@ import "fmt"
 type HeroVal int
 
 const (
-    Abomination HeroVal = iota
+    Empty HeroVal = iota
+    Abomination
     AgentVenom
     AntMan
     ArchAngel
-    Beast 
+    Beast
     BlackBolt
     BlackPanther
     BlackPantherCivilWar
@@ -112,6 +113,98 @@ const (
     Punisher2099
     Angela
     DoctorOctopus
+    Mephisto
+    Morningstar
+    Blade
+    ThorRagnarok
+    Hela
+    Taskmaster
+    Modok
+    Sentry
+    Void
+    HulkRagnarok
+    Killmonger
+    Sentinel
+    Bishop
+    Sabretooth
+    ProximaMidnight
+    CorvusGlaive
+    CaptainAmericaInfinityWar
+    IronManInfinityWar
+    Goldpool
+    Domino
+    Masacre
+    Wasp
+    Ghost
+    RedSkull
+    Heimdall
+    Korg
+    OmegaRed
+    EmmaFrost
+    SymbioteSupreme
+    VenomTheDuck
+    Champion
+    Aegon
+    Nightthrasher
+    Darkhawk
+    Thing
+    Diablo
+    Havok
+    MisterSinister
+    CaptainMarvelMovie
+    NickFury
+    Annihilus
+    HumanTorch
+    Ronin
+    CullObsidian
+    EbonyMaw
+    Namor
+    InvisibleWoman
+    SpiderManStealth
+    Mysterio
+    Sunspot
+    Warlock
+    BlackWidowClaireVoyant
+    VisionAarkus
+    ElsaBloodstone
+    ManThing
+    Guillotine2099
+    DoctorDoom
+    MisterFantastic
+    SilverSurfer
+    SquirrelGirl
+    Nova
+    Longshot
+    Mojo
+    WeaponX
+    MoleMan
+    Terrax
+    SorcererSupreme
+    StormPyramidX
+    BlackWidowDeadlyOrigins
+    RedGuardian
+    Tigra
+    HitMonkey
+    Guardian
+    Sasquatch
+    AirWalker
+    Dragonman
+    PlatinumPool
+    ProfessorX
+    Apocalypse
+    RedGoblin
+    CosmicGhostRider
+    HulkImmortal
+    AbominationImmortal
+    SpiderHam
+    Jubilee
+    Stryfe
+    PsychoMan
+    SuperSkrull
+    Mangog
+    Odin
+    SilverCenturion
+    JabariPanther
     // This should always be last
     MaxHeroVal
 )
