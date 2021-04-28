@@ -26,9 +26,9 @@ type PlayerChamp struct {
 	champ  Champ
 }
 
-var bg1_2 = map[string][]Champ{
+var bg1 = map[string][]Champ{
 	"sugar": []Champ{
-		Champ{Apocalypse, 6, 2, 0},
+		//Champ{Apocalypse, 6, 2, 0},
 		Champ{NickFury, 6, 3, 1},
 		Champ{Void, 6, 3, 160},
 		Champ{Dragonman, 6, 2, 20},
@@ -52,7 +52,7 @@ var bg1_2 = map[string][]Champ{
 		Champ{Mysterio, 5, 5, 20},
 		Champ{Tigra, 6, 2, 0},
 		Champ{Guillotine2099, 6, 2, 0},
-		Champ{NickFury, 5, 5, 1},
+		//Champ{NickFury, 5, 5, 1},
 	},
 	"TomJenks": []Champ{
 		Champ{Thing, 6, 3, 200},
@@ -276,9 +276,6 @@ var bg3 = map[string][]Champ{
     Champ{Hulkbuster, 5, 4, 20},
     Champ{SpiderGwen, 5, 4, 20},
     Champ{VisionAarkus, 6, 1, 0},
-    Champ{Yondu, 6, 1, 0},
-    Champ{YellowJacket, 6, 1, 0},
-    Champ{RedSkull, 6, 1, 0},
   },
   "Basher": []Champ{
     Champ{DoctorDoom, 5, 5, 20},
@@ -532,7 +529,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		if len(reducedChamps) < playerMax {
 			recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
 			ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
-      fmt.Printf("Failing due to %v\n", p)
+      //fmt.Printf("Failing due to %v %v %v\n", p, reducedChamps, diversity)
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
 		combos := teamCombinations(playerMax, reducedChamps)
@@ -615,6 +612,10 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
   debug := false
   if c.champ == CosmicGhostRider {
     //debug = true
+  }
+  if champValue(c) < 7 {
+    skippedChamps = append(skippedChamps, c)
+    return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
   }
   if debug {fmt.Printf("%v\n", c)}
   var count int
@@ -715,13 +716,12 @@ func Insert(sorted []Champ, champ Champ) []Champ {
 }
 
 
-func main() {
-
+func run(bg map[string][]Champ) {
 	ch := make(chan memoItem2)
 	t := time.Now()
 	//combos := teamCombinations(5, bg1_2["sugar"], "sugar")
 	//result, score, err := findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"})
-  /*
+    /*
 	players := []string{
 		"sugar",
 		"dhdhqqq",
@@ -733,7 +733,6 @@ func main() {
 		"Cantona",
 		"Spickster",
 		"MaltLicker"}
-    */
   players := []string{
     "Easy",
     "Wayne",
@@ -742,10 +741,16 @@ func main() {
     "Aaron",
     "Mike-781",
     "Spliffy",
-    "Webslinger",
+    "WebSlinger",
     "Basher",
     "Wellsz",
   }
+  */
+  var players []string
+  for p,_ := range bg {
+    players = append(players, p)
+  }
+
 	playerPermutations := permutations(players)
 	permD := time.Now().Sub(t)
 	fmt.Printf("%v\n", permD)
@@ -758,7 +763,7 @@ func main() {
 		fmt.Printf("\tTrying %v\n", playerList)
 
 		t = time.Now()
-		go findBestBG(ch, map[HeroVal]bool{}, bg3, playerList, Defenders{})
+		go findBestBG(ch, map[HeroVal]bool{}, bg, playerList, Defenders{})
 		select {
 		case mi := <-ch:
 			result, score, _ := mi.pds, mi.score, mi.err
@@ -799,8 +804,6 @@ func main() {
   }
   sort.Strings(maplines)
   fmt.Print(strings.Join(maplines, "\n"))
-
-    fmt.Printf("asfasdfasdf===========================\n")
 
     var unplacedChampsStrings  []string
     var unplacedChamps []Champ
@@ -867,4 +870,8 @@ func main() {
 	  fmt.Printf("Took %v\n", d)
 	  //fmt.Printf("Trying %v Trying 2 %v\n", tryingCount, trying2Count)
 	*/
+}
+
+func main() {
+  run(bg1)
 }

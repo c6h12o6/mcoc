@@ -54,15 +54,15 @@ var Nodes = map[int][]HeroVal {
   44: []HeroVal{Medusa, Venom, Aegon, MaxHeroVal},
   45: []HeroVal{Dragonman, Mojo, Nightcrawler},
   46: []HeroVal{Tigra, Warlock, Sentinel},
-  47: []HeroVal{Terrax, Apocalypse, Tigra},
+  47: []HeroVal{Terrax, Apocalypse, Tigra, Thing},
   48: []HeroVal{SpiderHam, IronManInfinityWar, Korg},
   49: []HeroVal{Killmonger, Havok},
   50: []HeroVal{Guillotine2099, Sasquatch, Sabretooth},
   51: []HeroVal{NickFury, SpiderHam, Mysterio},
   52: []HeroVal{Apocalypse},
   53: []HeroVal{Thing, Dragonman},
-  54: []HeroVal{Mangog, DoctorDoom, SorcererSupreme},
-  55: []HeroVal{SpiderGwen, BlackWidowDeadlyOrigins, Longshot, DoctorDoom},
+  54: []HeroVal{Mangog, DoctorDoom, SorcererSupreme, Longshot, Terrax},
+  55: []HeroVal{SpiderGwen, BlackWidowDeadlyOrigins, DoctorDoom},
 }
 
 var levels = map[HeroVal]int { 
