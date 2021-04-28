@@ -167,6 +167,144 @@ var bg1_2 = map[string][]Champ{
 	},
 }
 
+var bg3 = map[string][]Champ{
+  "Easy": []Champ{
+    Champ{Void, 6, 3, 200},
+    Champ{DoctorDoom, 6, 3, 200},
+    Champ{NickFury, 6, 3, 20},
+    Champ{Warlock, 5, 5, 200},
+    Champ{HumanTorch, 6, 3, 0},
+    Champ{Magneto, 5, 5, 20},
+    Champ{Terrax, 6, 2, 20},
+    Champ{SpiderHam, 5, 5, 20},
+    Champ{Domino, 5, 5, 20},
+    Champ{IronManInfinityWar, 5, 5, 20},
+    Champ{ProfessorX, 5, 5, 20},
+    Champ{Hyperion, 5, 5, 20},
+    Champ{Apocalypse, 6, 2, 0},
+    Champ{Dragonman, 6, 2, 0},
+    Champ{Havok, 6, 2, 0},
+  },
+  "Wayne": []Champ{
+    Champ{DoctorDoom, 5, 5, 20},
+    Champ{Thing, 5, 5, 20},
+    Champ{Guillotine2099, 5, 5, 20},
+    Champ{Korg, 5, 5, 20},
+    Champ{Quake, 5, 5, 20},
+    Champ{Void, 5, 5, 200},
+    Champ{Magik, 5, 5, 20},
+    Champ{Iceman, 5, 5, 20},
+    Champ{Hyperion, 5, 5, 20},
+    Champ{HumanTorch, 5, 5, 20},
+    Champ{Morningstar, 5, 4, 20},
+    Champ{Mephisto, 6, 1, 20},
+  },
+  "MarjorieZ": []Champ{
+    Champ{Hyperion, 5, 5, 20},
+    Champ{Void, 5, 5, 20},
+    Champ{Medusa, 5, 5, 20},
+    Champ{Sentinel, 5, 5, 20},
+    Champ{Venom, 5, 5, 20},
+    Champ{ArchAngel, 5, 5, 20},
+    Champ{EmmaFrost, 5, 4, 20},
+    Champ{Namor, 5, 4, 20},
+    Champ{DoctorVoodoo, 5, 4, 20},
+    Champ{Falcon, 5, 5, 20},
+  },
+  "Emodiva": []Champ{
+    Champ{Guillotine2099, 6, 3, 20},
+    Champ{NickFury, 6, 3, 20},
+    Champ{DoctorDoom, 5, 5, 20},
+    Champ{SpiderManStealth, 5, 5, 20},
+    Champ{CaptainMarvelMovie, 5, 5, 20},
+    Champ{Warlock, 5, 5, 20},
+    Champ{Darkhawk, 5, 5, 200},
+    Champ{Magneto, 5, 5, 20},
+    Champ{Sasquatch, 5, 5, 20},
+    Champ{Guardian, 5, 5, 20},
+    Champ{Killmonger, 5, 5, 20},
+  },
+  "Aaron": []Champ{
+    Champ{Sunspot, 6, 3, 20},
+    Champ{Mysterio, 5, 5, 20},
+    Champ{Aegon, 5, 5, 200},
+    Champ{Crossbones, 5, 5, 20},
+    Champ{AbominationImmortal, 5, 5, 20},
+    Champ{Terrax, 5, 5, 20},
+    Champ{ElsaBloodstone, 5, 5, 20},
+    Champ{HitMonkey, 5, 5, 20},
+    Champ{Nightcrawler, 6, 2, 20},
+  },
+  "Mike-781": []Champ{
+    Champ{SilverSurfer, 5,5, 20},
+    Champ{DoctorDoom, 5, 5, 20},
+    Champ{ProfessorX, 5, 5, 20},
+    Champ{Mojo, 5, 5, 20},
+    Champ{Thing, 5, 5, 20},
+    Champ{ManThing, 5, 5, 20},
+    Champ{Mysterio, 5, 5, 20},
+    Champ{Havok, 5, 5, 20},
+    Champ{Killmonger, 5, 5, 20},
+    Champ{Magneto, 5, 5, 20},
+    Champ{Medusa, 5, 5, 20},
+    Champ{Korg, 6, 2, 20},
+    Champ{InvisibleWoman, 6, 2, 20},
+  },
+  "Spliffy": []Champ{
+    Champ{Thing, 6, 3, 20},
+    Champ{DoctorDoom, 5, 5, 20},
+    Champ{Apocalypse, 5, 5, 20},
+    Champ{Havok, 5, 5, 20},
+    Champ{Medusa, 5, 5, 20},
+    Champ{SpidermanStark, 5, 5, 20},
+    Champ{Sentinel, 5, 5, 20},
+    Champ{Longshot, 5, 5, 20},
+    Champ{ProfessorX, 5, 5, 20},
+    Champ{BlackWidowDeadlyOrigins, 6, 2, 0},
+    Champ{Punisher2099, 6, 1, 20},
+    Champ{Warlock, 5, 5, 20},
+    Champ{SymbioteSupreme, 5, 5, 20},
+    Champ{Domino, 5, 5, 20},
+  }, 
+  "WebSlinger": []Champ{
+    Champ{Void, 5, 5, 200},
+    Champ{Hyperion, 5, 5, 20},
+    Champ{Domino, 5, 5, 20},
+    Champ{HumanTorch, 5, 5, 20},
+    Champ{SpiderManStealth, 5, 5, 20},
+    Champ{NickFury, 5, 5, 20},
+    Champ{Hulkbuster, 5, 4, 20},
+    Champ{SpiderGwen, 5, 4, 20},
+    Champ{VisionAarkus, 6, 1, 0},
+    Champ{Yondu, 6, 1, 0},
+    Champ{YellowJacket, 6, 1, 0},
+    Champ{RedSkull, 6, 1, 0},
+  },
+  "Basher": []Champ{
+    Champ{DoctorDoom, 5, 5, 20},
+    Champ{SpiderManStealth, 5, 5, 20},
+    Champ{NickFury, 5, 5, 20},
+    Champ{Void, 5, 5, 20},
+    Champ{OmegaRed, 5, 5, 20},
+    Champ{Mysterio, 5, 5, 20},
+    Champ{VenomTheDuck, 5, 5, 20},
+    Champ{Hyperion, 5, 5, 20},
+    Champ{Falcon, 5, 5, 20}, 
+    Champ{ThorRagnarok, 6, 1, 20},
+    Champ{Magik, 5, 5, 20},
+  },
+  "Wellsz": []Champ{
+    Champ{Hyperion, 5, 5, 20},
+    Champ{Colossus, 5,5 , 20},
+    Champ{RedGuardian, 5, 4, 20},
+    Champ{CullObsidian, 6, 1, 20},
+    Champ{Nightcrawler, 6, 1, 20},
+    Champ{Sabretooth, 6, 1, 0},
+    Champ{Mordo, 6, 1, 0},
+    Champ{MilesMorales, 6, 1, 0},
+  },
+}
+
 // combinations is a helper function for creating all possible combinations of
 // values from "iterable" in groups of "r"
 func combinations(iterable []int, r int) [][]int {
@@ -394,6 +532,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		if len(reducedChamps) < playerMax {
 			recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
 			ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
+      fmt.Printf("Failing due to %v\n", p)
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
 		combos := teamCombinations(playerMax, reducedChamps)
@@ -446,38 +585,71 @@ func copyOccupiedNodes(o map[int]Champ) map[int]Champ {
   return ret
 }
 
-func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ) (map[Champ]int, int, error) {
-  if len(remainingChamps) == 0 {
-    return map[Champ]int{}, 0, nil
+func Contains(n []HeroVal, c HeroVal) bool {
+  for _, h := range n {
+    if c == h {
+      return true
+    }
   }
+  return false
+}
 
+func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
   bestScore := 0
   bestMap := map[Champ]int{}
 
+  if len(remainingChamps) == 0 {
+    for n := 55; n > 0 && len(skippedChamps) > 0; n-- {
+      if _, ok := occupiedNodes[n]; !ok {
+        bestMap[skippedChamps[0]] = n
+        skippedChamps = skippedChamps[1:]
+      }
+    }
+
+    return bestMap, 0, nil
+  }
+
+
   assigned := false
   c := remainingChamps[0]
+  debug := false
+  if c.champ == CosmicGhostRider {
+    //debug = true
+  }
+  if debug {fmt.Printf("%v\n", c)}
+  var count int
   for n := 55; n > 0; n-- {
-    if _, ok := occupiedNodes[n]; ok {
+    if xx, ok := occupiedNodes[n]; ok {
+      if debug {fmt.Printf("skipping %v %v\n", n, xx)}
       continue
     }
-    idx := sort.Search(len(Nodes[n]), func (i int) bool { if Nodes[n][i] == c.champ { return true } else { return false }})
-    if idx == len(Nodes[n]) {
-      //fmt.Printf("Could not find %v in node %v\n", c, n)
-    } else {
+    //idx := sort.Search(len(Nodes[n]), func (i int) bool { if Nodes[n][i] == c.champ { return true } else { return false }})
+
+    if Contains(Nodes[n], c.champ) {
+      count++
       assigned = true
       newOccupiedNodes := copyOccupiedNodes(occupiedNodes)
       newOccupiedNodes[n] = c
       //fmt.Printf("Found %v at node %v index %v\n", c, n, idx)
-      result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:])
+      result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:], skippedChamps)
       if err == nil && score + 1 > bestScore {
         bestScore = score + 1
         bestMap = result
         bestMap[c] = n
       }
+    } else {
+      if debug {fmt.Printf("Could not find %v in node %v\n", c, n)}
+    }
+    if count > 1 {
+      if debug {fmt.Printf("breaking here=====================\n")}
+      //fmt.Printf("%v\n", len(remainingChamps))
+      break
     }
   }
   if !assigned {
-    return assignChamps(occupiedNodes, remainingChamps[1:])
+    //fmt.Printf("Skipping assignment of %v (%v)\n", c, len(remainingChamps))
+    skippedChamps = append(skippedChamps, c)
+    return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
   }
 
 
@@ -549,6 +721,7 @@ func main() {
 	t := time.Now()
 	//combos := teamCombinations(5, bg1_2["sugar"], "sugar")
 	//result, score, err := findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"})
+  /*
 	players := []string{
 		"sugar",
 		"dhdhqqq",
@@ -560,6 +733,19 @@ func main() {
 		"Cantona",
 		"Spickster",
 		"MaltLicker"}
+    */
+  players := []string{
+    "Easy",
+    "Wayne",
+    "MarjorieZ",
+    "Emodiva",
+    "Aaron",
+    "Mike-781",
+    "Spliffy",
+    "Webslinger",
+    "Basher",
+    "Wellsz",
+  }
 	playerPermutations := permutations(players)
 	permD := time.Now().Sub(t)
 	fmt.Printf("%v\n", permD)
@@ -572,7 +758,7 @@ func main() {
 		fmt.Printf("\tTrying %v\n", playerList)
 
 		t = time.Now()
-		go findBestBG(ch, map[HeroVal]bool{}, bg1_2, playerList, Defenders{})
+		go findBestBG(ch, map[HeroVal]bool{}, bg3, playerList, Defenders{})
 		select {
 		case mi := <-ch:
 			result, score, _ := mi.pds, mi.score, mi.err
@@ -603,23 +789,54 @@ func main() {
 	fmt.Printf("Score: %v\n", bestScore)
   fmt.Printf("Allchamps: %v\n", allChamps)
 
-  result, _, _ := assignChamps(map[int]Champ{}, allChamps)
+  result, _, _ := assignChamps(map[int]Champ{}, allChamps, []Champ{})
   fmt.Printf("result length: %v\n", len(result))
   var maplines []string
+  assigned := map[int]Champ{}
   for c, n := range result {
+    assigned[n] = c
     maplines = append(maplines, fmt.Sprintf("%02d: %v", n, c))
   }
   sort.Strings(maplines)
   fmt.Print(strings.Join(maplines, "\n"))
-  var unplacedChamps []string
-  for _, c := range allChamps {
-    _, ok := result[c]
-    if !ok {
-      unplacedChamps = append(unplacedChamps, c.String())
+
+    fmt.Printf("asfasdfasdf===========================\n")
+
+    var unplacedChampsStrings  []string
+    var unplacedChamps []Champ
+    for _, c := range allChamps {
+      _, ok := result[c]
+      if !ok {
+        unplacedChampsStrings = append(unplacedChampsStrings, c.String())
+        unplacedChamps = append(unplacedChamps, c)
+      }
     }
+    fmt.Printf("\n")
+    fmt.Print(strings.Join(unplacedChampsStrings, ","))
+
+    for _, pd := range bestResult {
+      var output []string
+      output = append(output, fmt.Sprintf("%s: ", pd.player))
+      for _, c := range pd.defenders.champs {
+        output = append(output, c.champ.String())
+        output = append(output, fmt.Sprintf("(%v) ", result[c]))
+      }
+      fmt.Printf("%v\n", strings.Join(output, ""))
+    }
+
+    /*
+    result2, _, _ := assignChamps(assigned, unplacedChamps)
+    fmt.Printf("result length: %v\n", len(result))
+    var maplines2 []string
+    assigned := map[int]Champ{}
+    for c, n := range result2 {
+      assigned[n] = c
+      maplines2= append(maplines2, fmt.Sprintf("--%02d: %v", n, c))
+    }
+    sort.Strings(maplines2)
+    fmt.Print(strings.Join(maplines2, "\n"))
   }
-  fmt.Printf("\n"))
-  fmt.Print(strings.Join(unplacedChamps, ","))
+  */
 
 
 	/*
