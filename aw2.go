@@ -13,15 +13,15 @@ import "github.com/bradfitz/slice"
 import "math/rand"
 
 type Champ struct {
-	champ HeroVal
-	stars int32
-	level int32
-	sig   int32
-  lockedNode int
+	champ      HeroVal
+	stars      int32
+	level      int32
+	sig        int32
+	lockedNode int
 }
 
 func NewChamp(hv HeroVal, stars int32, level int32, sig int32) Champ {
-  return Champ{hv, stars, level, sig, 0}
+	return Champ{hv, stars, level, sig, 0}
 }
 
 var playerMax = 5
@@ -148,8 +148,9 @@ func champScore(a Champ) float32 {
 }
 
 func (c Champ) String() string {
-  return fmt.Sprintf("%v (%v/%v)", c.champ.String(), c.stars, c.level)
+	return fmt.Sprintf("%v (%v/%v)", c.champ.String(), c.stars, c.level)
 }
+
 var memoLock sync.Mutex
 var memoCount int
 var totalCount int
@@ -252,47 +253,47 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		playerChamps := roster[p]
 		//fmt.Printf("playerChamps: %v", playerChamps)
 		var reducedChamps []Champ
-    var lockedChamps []Champ
-    var lockedChampScore float32
+		var lockedChamps []Champ
+		var lockedChampScore float32
 
-    var debug bool
-    //if p == "sugar" { debug = true }
+		var debug bool
+		//if p == "sugar" { debug = true }
 
 		for _, c := range playerChamps {
-      // all locked nodes should also already be in the diversity map
-      if c.lockedNode != 0 {
-        lockedChamps = append(lockedChamps, c)
-        lockedChampScore += champScore(c)
-      }
+			// all locked nodes should also already be in the diversity map
+			if c.lockedNode != 0 {
+				lockedChamps = append(lockedChamps, c)
+				lockedChampScore += champScore(c)
+			}
 			if _, ok := diversity[c.champ]; ok {
 				continue
 			}
-      
+
 			reducedChamps = append(reducedChamps, c)
 		}
 		if len(reducedChamps) < playerMax {
 			recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
 			ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
-      //fmt.Printf("Failing due to %v %v %v\n", p, reducedChamps, diversity)
+			//fmt.Printf("Failing due to %v %v %v\n", p, reducedChamps, diversity)
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
 		combos := teamCombinations(playerMax-len(lockedChamps), reducedChamps)
 		combos = combos[:int(math.Min(float64(len(combos)), 5))]
-    newCombos := make([]Defenders, len(combos))
+		newCombos := make([]Defenders, len(combos))
 
-    for ii, d := range combos {
-      d.score += lockedChampScore
-      newCombos[ii] = Defenders{
-        champs: append(d.champs, lockedChamps...),
-        score: d.score + lockedChampScore,
-      }
-    }
-    combos = newCombos
-    if debug {
-      for _, d := range combos {
-        fmt.Printf("combos %v\n", d.String())
-      }
-    }
+		for ii, d := range combos {
+			d.score += lockedChampScore
+			newCombos[ii] = Defenders{
+				champs: append(d.champs, lockedChamps...),
+				score:  d.score + lockedChampScore,
+			}
+		}
+		combos = newCombos
+		if debug {
+			for _, d := range combos {
+				fmt.Printf("combos %v\n", d.String())
+			}
+		}
 		for _, d := range combos {
 			newDiversity := copyDiversity(diversity)
 			for _, champ := range d.champs {
@@ -323,148 +324,152 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 }
 
 func findBestBGHelper(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string][]Champ, players []string, callArgs Defenders) ([]PlayerDefenders, float32, error) {
-  for _, p := range players {
-    for _, c := range roster[p] {
-      if c.lockedNode != 0 {
-        diversity[c.champ] = true
-      }
-    }
-  }
-  fmt.Printf("starting diversity; %v\n", diversity)
-  return findBestBG(ch, diversity, roster, players, callArgs)
+	for _, p := range players {
+		for _, c := range roster[p] {
+			if c.lockedNode != 0 {
+				diversity[c.champ] = true
+			}
+		}
+	}
+	fmt.Printf("starting diversity; %v\n", diversity)
+	return findBestBG(ch, diversity, roster, players, callArgs)
 }
 
 func removeFromRemainingChamps(r []HeroVal, tbr HeroVal) []HeroVal {
-  var ret []HeroVal 
-  for _, h := range r {
-    if h == tbr {
-      continue
-    }
-    ret = append(ret, h)
-  }
-  return ret
+	var ret []HeroVal
+	for _, h := range r {
+		if h == tbr {
+			continue
+		}
+		ret = append(ret, h)
+	}
+	return ret
 }
 
 func copyOccupiedNodes(o map[int]Champ) map[int]Champ {
-  ret := map[int]Champ{}
-  for k,v := range o {
-    ret[k] = v
-  }
-  return ret
+	ret := map[int]Champ{}
+	for k, v := range o {
+		ret[k] = v
+	}
+	return ret
 }
 
 func Contains(n []HeroVal, c HeroVal) bool {
-  for _, h := range n {
-    if c == h {
-      return true
-    }
-  }
-  return false
+	for _, h := range n {
+		if c == h {
+			return true
+		}
+	}
+	return false
 }
 
 func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
-  bestScore := 0
-  bestMap := map[Champ]int{}
+	bestScore := 0
+	bestMap := map[Champ]int{}
 
-  if len(remainingChamps) == 0 {
-    for n := 55; n > 0 && len(skippedChamps) > 0; n-- {
-      if _, ok := occupiedNodes[n]; !ok {
-        bestMap[skippedChamps[0]] = n
-        skippedChamps = skippedChamps[1:]
-      }
-    }
+	if len(remainingChamps) == 0 {
+		for n := 55; n > 0 && len(skippedChamps) > 0; n-- {
+			if _, ok := occupiedNodes[n]; !ok {
+				bestMap[skippedChamps[0]] = n
+				skippedChamps = skippedChamps[1:]
+			}
+		}
 
-    return bestMap, 0, nil
-  }
+		return bestMap, 0, nil
+	}
 
+	assigned := false
+	c := remainingChamps[0]
+	debug := false
+	if c.champ == CosmicGhostRider {
+		//debug = true
+	}
+	if champValue(c) < 7 {
+		skippedChamps = append(skippedChamps, c)
+		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
+	}
+	if debug {
+		fmt.Printf("%v\n", c)
+	}
+	var count int
+	for n := 55; n > 0; n-- {
+		if xx, ok := occupiedNodes[n]; ok {
+			if debug {
+				fmt.Printf("skipping %v %v\n", n, xx)
+			}
+			continue
+		}
+		//idx := sort.Search(len(Nodes[n]), func (i int) bool { if Nodes[n][i] == c.champ { return true } else { return false }})
 
-  assigned := false
-  c := remainingChamps[0]
-  debug := false
-  if c.champ == CosmicGhostRider {
-    //debug = true
-  }
-  if champValue(c) < 7 {
-    skippedChamps = append(skippedChamps, c)
-    return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
-  }
-  if debug {fmt.Printf("%v\n", c)}
-  var count int
-  for n := 55; n > 0; n-- {
-    if xx, ok := occupiedNodes[n]; ok {
-      if debug {fmt.Printf("skipping %v %v\n", n, xx)}
-      continue
-    }
-    //idx := sort.Search(len(Nodes[n]), func (i int) bool { if Nodes[n][i] == c.champ { return true } else { return false }})
+		if Contains(Nodes[n], c.champ) {
+			count++
+			assigned = true
+			newOccupiedNodes := copyOccupiedNodes(occupiedNodes)
+			newOccupiedNodes[n] = c
+			//fmt.Printf("Found %v at node %v index %v\n", c, n, idx)
+			result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:], skippedChamps)
+			if err == nil && score+1 > bestScore {
+				bestScore = score + 1
+				bestMap = result
+				bestMap[c] = n
+			}
+		} else {
+			if debug {
+				fmt.Printf("Could not find %v in node %v\n", c, n)
+			}
+		}
+		if count > 1 {
+			if debug {
+				fmt.Printf("breaking here=====================\n")
+			}
+			//fmt.Printf("%v\n", len(remainingChamps))
+			break
+		}
+	}
+	if !assigned {
+		//fmt.Printf("Skipping assignment of %v (%v)\n", c, len(remainingChamps))
+		skippedChamps = append(skippedChamps, c)
+		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
+	}
 
-    if Contains(Nodes[n], c.champ) {
-      count++
-      assigned = true
-      newOccupiedNodes := copyOccupiedNodes(occupiedNodes)
-      newOccupiedNodes[n] = c
-      //fmt.Printf("Found %v at node %v index %v\n", c, n, idx)
-      result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:], skippedChamps)
-      if err == nil && score + 1 > bestScore {
-        bestScore = score + 1
-        bestMap = result
-        bestMap[c] = n
-      }
-    } else {
-      if debug {fmt.Printf("Could not find %v in node %v\n", c, n)}
-    }
-    if count > 1 {
-      if debug {fmt.Printf("breaking here=====================\n")}
-      //fmt.Printf("%v\n", len(remainingChamps))
-      break
-    }
-  }
-  if !assigned {
-    //fmt.Printf("Skipping assignment of %v (%v)\n", c, len(remainingChamps))
-    skippedChamps = append(skippedChamps, c)
-    return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
-  }
+	/*
+	   node := Nodes[startNode]
+	   for idx, h := range node {
+	     if h == MaxHeroVal {
+	     }
 
+	     remaining := removeFromRemainingChamps(remainingChamps, h)
+	     result, score, err := assignNode(startNode - 1, remaining)
 
-/*
-  node := Nodes[startNode]
-  for idx, h := range node {
-    if h == MaxHeroVal {
-    }
+	     if err != nil && score > bestScore {
+	       bestScore = score + 1
+	       result[n] = h
+	       bestMap = result
+	     }
+	   }
 
-    remaining := removeFromRemainingChamps(remainingChamps, h)
-    result, score, err := assignNode(startNode - 1, remaining)
-    
-    if err != nil && score > bestScore {
-      bestScore = score + 1
-      result[n] = h
-      bestMap = result
-    }
-  }
-  
-  */
-  return bestMap, bestScore, nil
+	*/
+	return bestMap, bestScore, nil
 }
-
 
 func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
-  locked := map[Champ]int{}
-  for _, champlist := range bg {
-    for _, c := range champlist {
-      if c.lockedNode != 0 {
-        occupiedNodes[c.lockedNode] = c
-        locked[c] = c.lockedNode
-      }
-    }
-  }
+	locked := map[Champ]int{}
+	for _, champlist := range bg {
+		for _, c := range champlist {
+			if c.lockedNode != 0 {
+				occupiedNodes[c.lockedNode] = c
+				locked[c] = c.lockedNode
+			}
+		}
+	}
 
-  result, score, err := assignChamps(occupiedNodes, remainingChamps, skippedChamps)
-  fmt.Printf("adding back locked champs %v\n", locked)
-  for k,v := range locked {
-    result[k] = v
-  }
-  return result, score, err
+	result, score, err := assignChamps(occupiedNodes, remainingChamps, skippedChamps)
+	fmt.Printf("adding back locked champs %v\n", locked)
+	for k, v := range locked {
+		result[k] = v
+	}
+	return result, score, err
 }
-
 
 func permutations(arr []string) [][]string {
 	var helper func([]string, int)
@@ -495,48 +500,47 @@ func permutations(arr []string) [][]string {
 }
 
 func Insert(sorted []Champ, champ Champ) []Champ {
-  i := sort.Search(len(sorted), func(i int) bool { return champScore(sorted[i]) < champScore(champ)})
-  sorted = append(sorted, Champ{})
-  copy(sorted[i+1:], sorted[i:])
-  sorted[i] = champ
-  return sorted
+	i := sort.Search(len(sorted), func(i int) bool { return champScore(sorted[i]) < champScore(champ) })
+	sorted = append(sorted, Champ{})
+	copy(sorted[i+1:], sorted[i:])
+	sorted[i] = champ
+	return sorted
 }
-
 
 func run(bg map[string][]Champ) {
 	ch := make(chan memoItem2)
 	t := time.Now()
 	//combos := teamCombinations(5, bg1_2["sugar"], "sugar")
 	//result, score, err := findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"})
-    /*
-	players := []string{
-		"sugar",
-		"dhdhqqq",
-		"TomJenks",
-		"LivingArtiface",
-		"Yves",
-		"Nino",
-		"Timzo",
-		"Cantona",
-		"Spickster",
-		"MaltLicker"}
-  players := []string{
-    "Easy",
-    "Wayne",
-    "MarjorieZ",
-    "Emodiva",
-    "Aaron",
-    "Mike-781",
-    "Spliffy",
-    "WebSlinger",
-    "Basher",
-    "Wellsz",
-  }
-  */
-  var players []string
-  for p,_ := range bg {
-    players = append(players, p)
-  }
+	/*
+		players := []string{
+			"sugar",
+			"dhdhqqq",
+			"TomJenks",
+			"LivingArtiface",
+			"Yves",
+			"Nino",
+			"Timzo",
+			"Cantona",
+			"Spickster",
+			"MaltLicker"}
+	  players := []string{
+	    "Easy",
+	    "Wayne",
+	    "MarjorieZ",
+	    "Emodiva",
+	    "Aaron",
+	    "Mike-781",
+	    "Spliffy",
+	    "WebSlinger",
+	    "Basher",
+	    "Wellsz",
+	  }
+	*/
+	var players []string
+	for p, _ := range bg {
+		players = append(players, p)
+	}
 
 	playerPermutations := permutations(players)
 	permD := time.Now().Sub(t)
@@ -571,63 +575,62 @@ func run(bg map[string][]Champ) {
 		}
 	}
 
-  var allChamps []Champ
+	var allChamps []Champ
 	for _, pd := range bestResult {
-    for _, c := range pd.defenders.champs {
-      allChamps = Insert(allChamps, c)
-    }
+		for _, c := range pd.defenders.champs {
+			allChamps = Insert(allChamps, c)
+		}
 		fmt.Printf("%s: %s\n", pd.player, pd.defenders.String())
 	}
 	fmt.Printf("Score: %v\n", bestScore)
-  fmt.Printf("Allchamps: %v\n", allChamps)
+	fmt.Printf("Allchamps: %v\n", allChamps)
 
-  result, _, _ := assignChampsHelper(bg1, map[int]Champ{}, allChamps, []Champ{})
-  fmt.Printf("result length: %v\n", len(result))
-  var maplines []string
-  assigned := map[int]Champ{}
-  for c, n := range result {
-    assigned[n] = c
-    maplines = append(maplines, fmt.Sprintf("%02d: %v", n, c))
-  }
-  sort.Strings(maplines)
-  fmt.Print(strings.Join(maplines, "\n"))
+	result, _, _ := assignChampsHelper(bg1, map[int]Champ{}, allChamps, []Champ{})
+	fmt.Printf("result length: %v\n", len(result))
+	var maplines []string
+	assigned := map[int]Champ{}
+	for c, n := range result {
+		assigned[n] = c
+		maplines = append(maplines, fmt.Sprintf("%02d: %v", n, c))
+	}
+	sort.Strings(maplines)
+	fmt.Print(strings.Join(maplines, "\n"))
 
-    var unplacedChampsStrings  []string
-    var unplacedChamps []Champ
-    for _, c := range allChamps {
-      _, ok := result[c]
-      if !ok {
-        unplacedChampsStrings = append(unplacedChampsStrings, c.String())
-        unplacedChamps = append(unplacedChamps, c)
-      }
-    }
-    fmt.Printf("\n")
-    fmt.Print(strings.Join(unplacedChampsStrings, ","))
+	var unplacedChampsStrings []string
+	var unplacedChamps []Champ
+	for _, c := range allChamps {
+		_, ok := result[c]
+		if !ok {
+			unplacedChampsStrings = append(unplacedChampsStrings, c.String())
+			unplacedChamps = append(unplacedChamps, c)
+		}
+	}
+	fmt.Printf("\n")
+	fmt.Print(strings.Join(unplacedChampsStrings, ","))
 
-    for _, pd := range bestResult {
-      var output []string
-      output = append(output, fmt.Sprintf("%s: ", pd.player))
-      for _, c := range pd.defenders.champs {
-        output = append(output, c.champ.String())
-        output = append(output, fmt.Sprintf("(%v) ", result[c]))
-      }
-      fmt.Printf("%v\n", strings.Join(output, ""))
-    }
+	for _, pd := range bestResult {
+		var output []string
+		output = append(output, fmt.Sprintf("%s: ", pd.player))
+		for _, c := range pd.defenders.champs {
+			output = append(output, c.champ.String())
+			output = append(output, fmt.Sprintf("(%v) ", result[c]))
+		}
+		fmt.Printf("%v\n", strings.Join(output, ""))
+	}
 
-    /*
-    result2, _, _ := assignChamps(assigned, unplacedChamps)
-    fmt.Printf("result length: %v\n", len(result))
-    var maplines2 []string
-    assigned := map[int]Champ{}
-    for c, n := range result2 {
-      assigned[n] = c
-      maplines2= append(maplines2, fmt.Sprintf("--%02d: %v", n, c))
-    }
-    sort.Strings(maplines2)
-    fmt.Print(strings.Join(maplines2, "\n"))
-  }
-  */
-
+	/*
+	    result2, _, _ := assignChamps(assigned, unplacedChamps)
+	    fmt.Printf("result length: %v\n", len(result))
+	    var maplines2 []string
+	    assigned := map[int]Champ{}
+	    for c, n := range result2 {
+	      assigned[n] = c
+	      maplines2= append(maplines2, fmt.Sprintf("--%02d: %v", n, c))
+	    }
+	    sort.Strings(maplines2)
+	    fmt.Print(strings.Join(maplines2, "\n"))
+	  }
+	*/
 
 	/*
 	  var players []string
@@ -661,285 +664,284 @@ func run(bg map[string][]Champ) {
 
 func main() {
 	bg1 = map[string][]Champ{
-    "sugar": []Champ{
-		//NewChamp(Apocalypse, 6, 2, 0),
-		Champ{NickFury, 6, 3, 1, 51},
-		NewChamp(Void, 6, 3, 160),
-		NewChamp(Dragonman, 6, 2, 20),
-		NewChamp(CosmicGhostRider, 6, 3, 20),
-		NewChamp(Terrax, 5, 5, 200),
-		NewChamp(Mojo, 5, 5, 200),
-		NewChamp(Guillotine2099, 6, 2, 0),
-		NewChamp(Guardian, 5, 5, 200),
-		NewChamp(DoctorDoom, 5, 5, 20),
-		NewChamp(Punisher2099, 6, 2, 0),
-	},
-	"dhdhqqq": []Champ{
-		Champ{Longshot, 6, 3, 60, 54},
-		Champ{Killmonger, 5, 5, 200, 49},
-		NewChamp(BlackWidowDeadlyOrigins, 6, 3, 0),
-		NewChamp(Mojo, 5, 5, 89),
-		NewChamp(Void, 5, 5, 200),
-		NewChamp(EmmaFrost, 5, 5, 20),
-		NewChamp(Sentinel, 5, 5, 20),
-		NewChamp(Korg, 5, 5, 20),
-		NewChamp(Mysterio, 5, 5, 20),
-		NewChamp(Tigra, 6, 2, 0),
-		NewChamp(Guillotine2099, 6, 2, 0),
-		//NewChamp(NickFury, 5, 5, 1),
-	},
-	"TomJenks": []Champ{
-		Champ{Thing, 6, 3, 200, 53},
-		NewChamp(HitMonkey, 6, 3, 20),
-		NewChamp(DoctorDoom, 5, 5, 20),
-		NewChamp(ProfessorX, 5, 5, 20),
-		NewChamp(Sasquatch, 5, 5, 20),
-		NewChamp(SpiderHam, 5, 5, 20),
-		NewChamp(RedGuardian, 5, 5, 20),
-		NewChamp(Apocalypse, 5, 5, 20),
-		NewChamp(Guillotine2099, 5, 5, 20),
-		NewChamp(MoleMan, 5, 5, 20),
-		NewChamp(NickFury, 5, 5, 20),
-		NewChamp(Iceman, 5, 5, 200),
-		NewChamp(Havok, 5, 5, 20),
-		NewChamp(Tigra, 5, 5, 20),
-		NewChamp(Domino, 6, 2, 20),
-	},
-	"LivingArtiface": []Champ{
-		NewChamp(SilverSurfer, 5, 5, 20),
-		Champ{DoctorDoom, 5, 5, 20, 55},
-		NewChamp(SpiderManStealth, 5, 5, 20),
-		NewChamp(CaptainMarvelMovie, 5, 5, 20),
-		NewChamp(Namor, 5, 5, 20),
-		NewChamp(Void, 5, 5, 20),
-		NewChamp(ProfessorX, 5, 5, 20),
-		NewChamp(Thing, 5, 5, 20),
-		NewChamp(SymbioteSupreme, 5, 5, 20),
-		NewChamp(Havok, 5, 5, 20),
-		NewChamp(NickFury, 5, 5, 20),
-		NewChamp(Magneto, 5, 5, 20),
-		NewChamp(Warlock, 5, 5, 20),
-		NewChamp(CosmicGhostRider, 6, 2, 0),
-		NewChamp(Venom, 5, 5, 20),
-		NewChamp(Apocalypse, 6, 2, 0),
-		NewChamp(Guillotine2099, 6, 3, 0),
-		NewChamp(Hyperion, 5, 5, 20),
-		NewChamp(Dragonman, 5, 5, 0),
-	},
-	"Yves": []Champ{
-		NewChamp(DoctorDoom, 5, 5, 20),
-		NewChamp(CaptainMarvelMovie, 5, 5, 200),
-		NewChamp(SymbioteSupreme, 5, 5, 200),
-		NewChamp(Aegon, 5, 5, 200),
-		NewChamp(RedHulk, 5, 5, 200),
-		NewChamp(BlackWidowDeadlyOrigins, 6, 3, 0),
-		NewChamp(Sentinel, 5, 5, 20),
-		NewChamp(Sasquatch, 6, 2, 20),
-		NewChamp(Medusa, 5, 5, 20),
-	},
-	"Nino": []Champ{
-		NewChamp(BlackWidowClaireVoyant, 5, 5, 20),
-		NewChamp(Thing, 5, 5, 200),
-		NewChamp(Aegon, 5, 5, 200),
-		NewChamp(OmegaRed, 5, 5, 200),
-		NewChamp(Medusa, 5, 5, 20),
-		NewChamp(Tigra, 5, 5, 20),
-		NewChamp(Havok, 5, 5, 20),
-		NewChamp(SpiderHam, 5, 5, 20),
-		NewChamp(EmmaFrost, 5, 5, 20),
-		NewChamp(Warlock, 5, 5, 20),
-	},
-	"Timzo": []Champ{
-		NewChamp(Aegon, 5, 5, 20),
-		NewChamp(Void, 5, 5, 200),
-		NewChamp(Guillotine2099, 5, 5, 0),
-		NewChamp(Magneto, 5, 5, 0),
-		NewChamp(Hyperion, 5, 5, 0),
-		NewChamp(Venom, 5, 5, 0),
-		NewChamp(Sentinel, 5, 4, 20),
-		NewChamp(IronManInfinityWar, 5, 4, 20),
-		NewChamp(Annihilus, 5, 4, 20),
-		NewChamp(HitMonkey, 5, 4, 20),
-	},
-	"Cantona": []Champ{
-		NewChamp(Mojo, 5, 5, 20),
-		NewChamp(Korg, 5, 5, 20),
-		NewChamp(Void, 6, 2, 20),
-		NewChamp(EmmaFrost, 5, 5, 20),
-		NewChamp(MisterSinister, 6, 2, 20),
-		NewChamp(SymbioteSupreme, 5, 5, 20),
-		NewChamp(Apocalypse, 6, 2, 0),
-		NewChamp(Quake, 5, 5, 0),
-		NewChamp(SpiderGwen, 5, 5, 20),
-	},
-	"MaltLicker": []Champ{
-		NewChamp(NickFury, 5, 5, 20),
-		NewChamp(OmegaRed, 5, 5, 20),
-		NewChamp(Domino, 5, 5, 20),
-		NewChamp(Warlock, 5, 5, 20),
-		NewChamp(Medusa, 5, 5, 20),
-		NewChamp(SymbioteSupreme, 5, 5, 20),
-		NewChamp(BlackWidowClaireVoyant, 5, 5, 0),
-		NewChamp(Korg, 5, 4, 20),
-		NewChamp(EbonyMaw, 5, 4, 20),
-		NewChamp(Annihilus, 5, 4, 20),
-		NewChamp(Darkhawk, 5, 4, 20),
-		NewChamp(Iceman, 5, 4, 20),
-	},
-	"Spickster": []Champ{
-		NewChamp(DoctorDoom, 5, 5, 20),
-		NewChamp(Mephisto, 5, 5, 20),
-		NewChamp(IronManInfinityWar, 5, 5, 20),
-		NewChamp(Morningstar, 5, 5, 20),
-		NewChamp(Quake, 5, 5, 20),
-		NewChamp(Sentinel, 5, 5, 20),
-		NewChamp(Magneto, 5, 5, 20),
-		NewChamp(CosmicGhostRider, 5, 5, 20),
-		NewChamp(Iceman, 5, 5, 20),
-		NewChamp(HumanTorch, 5, 5, 0),
-		NewChamp(Phoenix, 6, 1, 20),
-	},
-}
+		"sugar": []Champ{
+			//NewChamp(Apocalypse, 6, 2, 0),
+			Champ{NickFury, 6, 3, 1, 51},
+			NewChamp(Void, 6, 3, 160),
+			NewChamp(Dragonman, 6, 2, 20),
+			NewChamp(CosmicGhostRider, 6, 3, 20),
+			NewChamp(Terrax, 5, 5, 200),
+			NewChamp(Mojo, 5, 5, 200),
+			NewChamp(Guillotine2099, 6, 2, 0),
+			NewChamp(Guardian, 5, 5, 200),
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(Punisher2099, 6, 2, 0),
+		},
+		"dhdhqqq": []Champ{
+			Champ{Longshot, 6, 3, 60, 54},
+			Champ{Killmonger, 5, 5, 200, 49},
+			NewChamp(BlackWidowDeadlyOrigins, 6, 3, 0),
+			NewChamp(Mojo, 5, 5, 89),
+			NewChamp(Void, 5, 5, 200),
+			NewChamp(EmmaFrost, 5, 5, 20),
+			NewChamp(Sentinel, 5, 5, 20),
+			NewChamp(Korg, 5, 5, 20),
+			NewChamp(Mysterio, 5, 5, 20),
+			NewChamp(Tigra, 6, 2, 0),
+			NewChamp(Guillotine2099, 6, 2, 0),
+			//NewChamp(NickFury, 5, 5, 1),
+		},
+		"TomJenks": []Champ{
+			Champ{Thing, 6, 3, 200, 53},
+			NewChamp(HitMonkey, 6, 3, 20),
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(ProfessorX, 5, 5, 20),
+			NewChamp(Sasquatch, 5, 5, 20),
+			NewChamp(SpiderHam, 5, 5, 20),
+			NewChamp(RedGuardian, 5, 5, 20),
+			NewChamp(Apocalypse, 5, 5, 20),
+			NewChamp(Guillotine2099, 5, 5, 20),
+			NewChamp(MoleMan, 5, 5, 20),
+			NewChamp(NickFury, 5, 5, 20),
+			NewChamp(Iceman, 5, 5, 200),
+			NewChamp(Havok, 5, 5, 20),
+			NewChamp(Tigra, 5, 5, 20),
+			NewChamp(Domino, 6, 2, 20),
+		},
+		"LivingArtiface": []Champ{
+			NewChamp(SilverSurfer, 5, 5, 20),
+			Champ{DoctorDoom, 5, 5, 20, 55},
+			NewChamp(SpiderManStealth, 5, 5, 20),
+			NewChamp(CaptainMarvelMovie, 5, 5, 20),
+			NewChamp(Namor, 5, 5, 20),
+			NewChamp(Void, 5, 5, 20),
+			NewChamp(ProfessorX, 5, 5, 20),
+			NewChamp(Thing, 5, 5, 20),
+			NewChamp(SymbioteSupreme, 5, 5, 20),
+			NewChamp(Havok, 5, 5, 20),
+			NewChamp(NickFury, 5, 5, 20),
+			NewChamp(Magneto, 5, 5, 20),
+			NewChamp(Warlock, 5, 5, 20),
+			NewChamp(CosmicGhostRider, 6, 2, 0),
+			NewChamp(Venom, 5, 5, 20),
+			NewChamp(Apocalypse, 6, 2, 0),
+			NewChamp(Guillotine2099, 6, 3, 0),
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Dragonman, 5, 5, 0),
+		},
+		"Yves": []Champ{
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(CaptainMarvelMovie, 5, 5, 200),
+			NewChamp(SymbioteSupreme, 5, 5, 200),
+			NewChamp(Aegon, 5, 5, 200),
+			NewChamp(RedHulk, 5, 5, 200),
+			NewChamp(BlackWidowDeadlyOrigins, 6, 3, 0),
+			NewChamp(Sentinel, 5, 5, 20),
+			NewChamp(Sasquatch, 6, 2, 20),
+			NewChamp(Medusa, 5, 5, 20),
+		},
+		"Nino": []Champ{
+			NewChamp(BlackWidowClaireVoyant, 5, 5, 20),
+			NewChamp(Thing, 5, 5, 200),
+			NewChamp(Aegon, 5, 5, 200),
+			NewChamp(OmegaRed, 5, 5, 200),
+			NewChamp(Medusa, 5, 5, 20),
+			NewChamp(Tigra, 5, 5, 20),
+			NewChamp(Havok, 5, 5, 20),
+			NewChamp(SpiderHam, 5, 5, 20),
+			NewChamp(EmmaFrost, 5, 5, 20),
+			NewChamp(Warlock, 5, 5, 20),
+		},
+		"Timzo": []Champ{
+			NewChamp(Aegon, 5, 5, 20),
+			NewChamp(Void, 5, 5, 200),
+			NewChamp(Guillotine2099, 5, 5, 0),
+			NewChamp(Magneto, 5, 5, 0),
+			NewChamp(Hyperion, 5, 5, 0),
+			NewChamp(Venom, 5, 5, 0),
+			NewChamp(Sentinel, 5, 4, 20),
+			NewChamp(IronManInfinityWar, 5, 4, 20),
+			NewChamp(Annihilus, 5, 4, 20),
+			NewChamp(HitMonkey, 5, 4, 20),
+		},
+		"Cantona": []Champ{
+			NewChamp(Mojo, 5, 5, 20),
+			NewChamp(Korg, 5, 5, 20),
+			NewChamp(Void, 6, 2, 20),
+			NewChamp(EmmaFrost, 5, 5, 20),
+			NewChamp(MisterSinister, 6, 2, 20),
+			NewChamp(SymbioteSupreme, 5, 5, 20),
+			NewChamp(Apocalypse, 6, 2, 0),
+			NewChamp(Quake, 5, 5, 0),
+			NewChamp(SpiderGwen, 5, 5, 20),
+		},
+		"MaltLicker": []Champ{
+			NewChamp(NickFury, 5, 5, 20),
+			NewChamp(OmegaRed, 5, 5, 20),
+			NewChamp(Domino, 5, 5, 20),
+			NewChamp(Warlock, 5, 5, 20),
+			NewChamp(Medusa, 5, 5, 20),
+			NewChamp(SymbioteSupreme, 5, 5, 20),
+			NewChamp(BlackWidowClaireVoyant, 5, 5, 0),
+			NewChamp(Korg, 5, 4, 20),
+			NewChamp(EbonyMaw, 5, 4, 20),
+			NewChamp(Annihilus, 5, 4, 20),
+			NewChamp(Darkhawk, 5, 4, 20),
+			NewChamp(Iceman, 5, 4, 20),
+		},
+		"Spickster": []Champ{
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(Mephisto, 5, 5, 20),
+			NewChamp(IronManInfinityWar, 5, 5, 20),
+			NewChamp(Morningstar, 5, 5, 20),
+			NewChamp(Quake, 5, 5, 20),
+			NewChamp(Sentinel, 5, 5, 20),
+			NewChamp(Magneto, 5, 5, 20),
+			NewChamp(CosmicGhostRider, 5, 5, 20),
+			NewChamp(Iceman, 5, 5, 20),
+			NewChamp(HumanTorch, 5, 5, 0),
+			NewChamp(Phoenix, 6, 1, 20),
+		},
+	}
 
-bg3 = map[string][]Champ{
-  "Easy": []Champ{
-    NewChamp(Void, 6, 3, 200),
-    NewChamp(DoctorDoom, 6, 3, 200),
-    NewChamp(NickFury, 6, 3, 20),
-    NewChamp(Warlock, 5, 5, 200),
-    //NewChamp(HumanTorch, 6, 3, 0),
-    NewChamp(Magneto, 5, 5, 20),
-    NewChamp(Terrax, 6, 2, 20),
-    NewChamp(SpiderHam, 5, 5, 20),
-    NewChamp(Domino, 5, 5, 20),
-    NewChamp(IronManInfinityWar, 5, 5, 20),
-    NewChamp(ProfessorX, 5, 5, 20),
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(Apocalypse, 6, 2, 0),
-    NewChamp(Dragonman, 6, 2, 0),
-    NewChamp(Havok, 6, 2, 0),
-  },
-  "Wayne": []Champ{
-    NewChamp(DoctorDoom, 5, 5, 20),
-    NewChamp(Thing, 5, 5, 20),
-    NewChamp(Guillotine2099, 5, 5, 20),
-    NewChamp(Korg, 5, 5, 20),
-    NewChamp(Quake, 5, 5, 20),
-    NewChamp(Void, 5, 5, 200),
-    NewChamp(Magik, 5, 5, 20),
-    NewChamp(Iceman, 5, 5, 20),
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(HumanTorch, 5, 5, 20),
-    /*
-    NewChamp(Morningstar, 5, 4, 20),
-    NewChamp(Mephisto, 6, 1, 20),*/
-  },
-  "MarjorieZ": []Champ{
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(Void, 5, 5, 20),
-    NewChamp(Medusa, 5, 5, 20),
-    NewChamp(Sentinel, 5, 5, 20),
-    NewChamp(Venom, 5, 5, 20),
-    NewChamp(ArchAngel, 5, 5, 20),
-    NewChamp(EmmaFrost, 5, 4, 20),
-    NewChamp(Namor, 5, 4, 20),
-    NewChamp(DoctorVoodoo, 5, 4, 20),
-    NewChamp(Falcon, 5, 5, 20),
-  },
-  "Emodiva": []Champ{
-    NewChamp(Guillotine2099, 6, 3, 20),
-    NewChamp(NickFury, 6, 3, 20),
-    NewChamp(DoctorDoom, 5, 5, 20),
-    NewChamp(SpiderManStealth, 5, 5, 20),
-    NewChamp(CaptainMarvelMovie, 5, 5, 20),
-    NewChamp(Warlock, 5, 5, 20),
-    NewChamp(Darkhawk, 5, 5, 200),
-    NewChamp(Magneto, 5, 5, 20),
-    NewChamp(Sasquatch, 5, 5, 20),
-    NewChamp(Guardian, 5, 5, 20),
-    NewChamp(Killmonger, 5, 5, 20),
-    NewChamp(MisterFantastic, 6, 3, 20),
-  },
-  "Aaron": []Champ{
-    NewChamp(Sunspot, 6, 3, 20),
-    NewChamp(Mysterio, 5, 5, 20),
-    NewChamp(Aegon, 5, 5, 200),
-    NewChamp(Crossbones, 5, 5, 20),
-    NewChamp(AbominationImmortal, 5, 5, 20),
-    NewChamp(Terrax, 5, 5, 20),
-    NewChamp(ElsaBloodstone, 5, 5, 20),
-    NewChamp(HitMonkey, 5, 5, 20),
-    NewChamp(Nightcrawler, 6, 2, 20),
-  },
-  "Mike-781": []Champ{
-    NewChamp(SilverSurfer, 5,5, 20),
-    NewChamp(DoctorDoom, 5, 5, 20),
-    NewChamp(ProfessorX, 5, 5, 20),
-    NewChamp(Mojo, 5, 5, 20),
-    NewChamp(Thing, 5, 5, 20),
-    NewChamp(ManThing, 5, 5, 20),
-    NewChamp(Mysterio, 5, 5, 20),
-    NewChamp(Havok, 5, 5, 20),
-    NewChamp(Killmonger, 5, 5, 20),
-    NewChamp(Magneto, 5, 5, 20),
-    NewChamp(Medusa, 5, 5, 20),
-    NewChamp(Korg, 6, 2, 20),
-    NewChamp(InvisibleWoman, 6, 2, 20),
-  },
-  "Spliffy": []Champ{
-    NewChamp(Thing, 6, 3, 20),
-    NewChamp(DoctorDoom, 5, 5, 20),
-    NewChamp(Apocalypse, 5, 5, 20),
-    NewChamp(Havok, 5, 5, 20),
-    NewChamp(Medusa, 5, 5, 20),
-    NewChamp(SpidermanStark, 5, 5, 20),
-    NewChamp(Sentinel, 5, 5, 20),
-    NewChamp(Longshot, 5, 5, 20),
-    NewChamp(ProfessorX, 5, 5, 20),
-    NewChamp(BlackWidowDeadlyOrigins, 6, 2, 0),
-    //NewChamp(Punisher2099, 6, 1, 20),
-    NewChamp(Warlock, 5, 5, 20),
-    NewChamp(SymbioteSupreme, 5, 5, 20),
-    NewChamp(Domino, 5, 5, 20),
-  }, 
-  "WebSlinger": []Champ{
-    NewChamp(Void, 5, 5, 200),
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(Domino, 5, 5, 20),
-    NewChamp(HumanTorch, 5, 5, 20),
-    NewChamp(SpiderManStealth, 5, 5, 20),
-    NewChamp(NickFury, 5, 5, 20),
-    /*
-    NewChamp(Hulkbuster, 5, 4, 20),
-    NewChamp(SpiderGwen, 5, 4, 20),
-    NewChamp(VisionAarkus, 6, 1, 0),*/
-  },
-  "Basher": []Champ{
-    NewChamp(DoctorDoom, 5, 5, 20),
-    NewChamp(SpiderManStealth, 5, 5, 20),
-    NewChamp(NickFury, 5, 5, 20),
-    NewChamp(Void, 5, 5, 20),
-    NewChamp(OmegaRed, 5, 5, 20),
-    NewChamp(Mysterio, 5, 5, 20),
-    NewChamp(VenomTheDuck, 5, 5, 20),
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(Falcon, 5, 5, 20), 
-    NewChamp(ThorRagnarok, 6, 1, 20),
-    NewChamp(Magik, 5, 5, 20),
-  },
-  "Wellsz": []Champ{
-    NewChamp(Hyperion, 5, 5, 20),
-    NewChamp(Colossus, 5,5 , 20),
-    NewChamp(RedGuardian, 5, 4, 20),
-    NewChamp(CullObsidian, 6, 1, 20),
-    NewChamp(Nightcrawler, 6, 1, 20),
-    NewChamp(Sabretooth, 6, 1, 0),
-    NewChamp(Mordo, 6, 1, 0),
-    NewChamp(MilesMorales, 6, 1, 0),
-    NewChamp(OmegaRed, 5, 5, 20),
-  },
-}
+	bg3 = map[string][]Champ{
+		"Easy": []Champ{
+			NewChamp(Void, 6, 3, 200),
+			NewChamp(DoctorDoom, 6, 3, 200),
+			NewChamp(NickFury, 6, 3, 20),
+			NewChamp(Warlock, 5, 5, 200),
+			//NewChamp(HumanTorch, 6, 3, 0),
+			NewChamp(Magneto, 5, 5, 20),
+			NewChamp(Terrax, 6, 2, 20),
+			NewChamp(SpiderHam, 5, 5, 20),
+			NewChamp(Domino, 5, 5, 20),
+			NewChamp(IronManInfinityWar, 5, 5, 20),
+			NewChamp(ProfessorX, 5, 5, 20),
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Apocalypse, 6, 2, 0),
+			NewChamp(Dragonman, 6, 2, 0),
+			NewChamp(Havok, 6, 2, 0),
+		},
+		"Wayne": []Champ{
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(Thing, 5, 5, 20),
+			NewChamp(Guillotine2099, 5, 5, 20),
+			NewChamp(Korg, 5, 5, 20),
+			NewChamp(Quake, 5, 5, 20),
+			NewChamp(Void, 5, 5, 200),
+			NewChamp(Magik, 5, 5, 20),
+			NewChamp(Iceman, 5, 5, 20),
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(HumanTorch, 5, 5, 20),
+			/*
+			   NewChamp(Morningstar, 5, 4, 20),
+			   NewChamp(Mephisto, 6, 1, 20),*/
+		},
+		"MarjorieZ": []Champ{
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Void, 5, 5, 20),
+			NewChamp(Medusa, 5, 5, 20),
+			NewChamp(Sentinel, 5, 5, 20),
+			NewChamp(Venom, 5, 5, 20),
+			NewChamp(ArchAngel, 5, 5, 20),
+			NewChamp(EmmaFrost, 5, 4, 20),
+			NewChamp(Namor, 5, 4, 20),
+			NewChamp(DoctorVoodoo, 5, 4, 20),
+			NewChamp(Falcon, 5, 5, 20),
+		},
+		"Emodiva": []Champ{
+			NewChamp(Guillotine2099, 6, 3, 20),
+			NewChamp(NickFury, 6, 3, 20),
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(SpiderManStealth, 5, 5, 20),
+			NewChamp(CaptainMarvelMovie, 5, 5, 20),
+			NewChamp(Warlock, 5, 5, 20),
+			NewChamp(Darkhawk, 5, 5, 200),
+			NewChamp(Magneto, 5, 5, 20),
+			NewChamp(Sasquatch, 5, 5, 20),
+			NewChamp(Guardian, 5, 5, 20),
+			NewChamp(Killmonger, 5, 5, 20),
+			NewChamp(MisterFantastic, 6, 3, 20),
+		},
+		"Aaron": []Champ{
+			NewChamp(Sunspot, 6, 3, 20),
+			NewChamp(Mysterio, 5, 5, 20),
+			NewChamp(Aegon, 5, 5, 200),
+			NewChamp(Crossbones, 5, 5, 20),
+			NewChamp(AbominationImmortal, 5, 5, 20),
+			NewChamp(Terrax, 5, 5, 20),
+			NewChamp(ElsaBloodstone, 5, 5, 20),
+			NewChamp(HitMonkey, 5, 5, 20),
+			NewChamp(Nightcrawler, 6, 2, 20),
+		},
+		"Mike-781": []Champ{
+			NewChamp(SilverSurfer, 5, 5, 20),
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(ProfessorX, 5, 5, 20),
+			NewChamp(Mojo, 5, 5, 20),
+			NewChamp(Thing, 5, 5, 20),
+			NewChamp(ManThing, 5, 5, 20),
+			NewChamp(Mysterio, 5, 5, 20),
+			NewChamp(Havok, 5, 5, 20),
+			NewChamp(Killmonger, 5, 5, 20),
+			NewChamp(Magneto, 5, 5, 20),
+			NewChamp(Medusa, 5, 5, 20),
+			NewChamp(Korg, 6, 2, 20),
+			NewChamp(InvisibleWoman, 6, 2, 20),
+		},
+		"Spliffy": []Champ{
+			NewChamp(Thing, 6, 3, 20),
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(Apocalypse, 5, 5, 20),
+			NewChamp(Havok, 5, 5, 20),
+			NewChamp(Medusa, 5, 5, 20),
+			NewChamp(SpidermanStark, 5, 5, 20),
+			NewChamp(Sentinel, 5, 5, 20),
+			NewChamp(Longshot, 5, 5, 20),
+			NewChamp(ProfessorX, 5, 5, 20),
+			NewChamp(BlackWidowDeadlyOrigins, 6, 2, 0),
+			//NewChamp(Punisher2099, 6, 1, 20),
+			NewChamp(Warlock, 5, 5, 20),
+			NewChamp(SymbioteSupreme, 5, 5, 20),
+			NewChamp(Domino, 5, 5, 20),
+		},
+		"WebSlinger": []Champ{
+			NewChamp(Void, 5, 5, 200),
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Domino, 5, 5, 20),
+			NewChamp(HumanTorch, 5, 5, 20),
+			NewChamp(SpiderManStealth, 5, 5, 20),
+			NewChamp(NickFury, 5, 5, 20),
+			/*
+			   NewChamp(Hulkbuster, 5, 4, 20),
+			   NewChamp(SpiderGwen, 5, 4, 20),
+			   NewChamp(VisionAarkus, 6, 1, 0),*/
+		},
+		"Basher": []Champ{
+			NewChamp(DoctorDoom, 5, 5, 20),
+			NewChamp(SpiderManStealth, 5, 5, 20),
+			NewChamp(NickFury, 5, 5, 20),
+			NewChamp(Void, 5, 5, 20),
+			NewChamp(OmegaRed, 5, 5, 20),
+			NewChamp(Mysterio, 5, 5, 20),
+			NewChamp(VenomTheDuck, 5, 5, 20),
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Falcon, 5, 5, 20),
+			NewChamp(ThorRagnarok, 6, 1, 20),
+			NewChamp(Magik, 5, 5, 20),
+		},
+		"Wellsz": []Champ{
+			NewChamp(Hyperion, 5, 5, 20),
+			NewChamp(Colossus, 5, 5, 20),
+			NewChamp(RedGuardian, 5, 4, 20),
+			NewChamp(CullObsidian, 6, 1, 20),
+			NewChamp(Nightcrawler, 6, 1, 20),
+			NewChamp(Sabretooth, 6, 1, 0),
+			NewChamp(Mordo, 6, 1, 0),
+			NewChamp(MilesMorales, 6, 1, 0),
+			NewChamp(OmegaRed, 5, 5, 20),
+		},
+	}
 
-
-  run(bg1)
+	run(bg1)
 }
