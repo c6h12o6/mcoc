@@ -12,18 +12,6 @@ import "math"
 import "github.com/bradfitz/slice"
 import "math/rand"
 
-type Champ struct {
-	champ      HeroVal
-	stars      int32
-	level      int32
-	sig        int32
-	lockedNode int
-}
-
-func NewChamp(hv HeroVal, stars int32, level int32, sig int32) Champ {
-	return Champ{hv, stars, level, sig, 0}
-}
-
 var playerMax = 5
 
 type PlayerChamp struct {
@@ -109,7 +97,7 @@ func teamCombinations(teamsize int, roster []Champ) []Defenders {
 		var score float32
 		for _, idx := range teamnos {
 			team.champs = append(team.champs, roster[idx])
-			score += champScore(roster[idx])
+			score += ChampScore(roster[idx])
 		}
 		team.score = score
 		// that has a synergy count of 0. They can't help our count
@@ -124,39 +112,8 @@ func teamCombinations(teamsize int, roster []Champ) []Defenders {
 	return teams
 }
 
-func champValue(a Champ) float32 {
-	if a.stars == 6 && a.level == 3 {
-		return 15 + float32(a.sig)/200
-	} else if a.stars == 6 && a.level == 2 {
-		return 9 + float32(a.sig)/200
-	} else if a.stars == 5 && a.level == 5 {
-		return 8 + float32(a.sig)/200
-	} else if a.stars == 6 && a.level == 1 {
-		return 6 + float32(a.sig)/200
-	} else if a.stars == 5 && a.level == 4 {
-		return 5 + float32(a.sig)/200
-	} else {
-		return 1
-	}
-}
-
-func champScore(a Champ) float32 {
-	if a.champ == Empty {
-		return 0.0
-	}
-	return champValue(a) + float32(GetLevel(a.champ))
-}
-
-func (c Champ) String() string {
-	return fmt.Sprintf("%v (%v/%v)", c.champ.String(), c.stars, c.level)
-}
-
 var memoLock sync.Mutex
 var memoCount int
-var totalCount int
-var totalCalls int
-var tryingCount int
-var trying2Count int
 
 type Defenders struct {
 	player string
@@ -210,7 +167,6 @@ func getMemoKey(diversity map[HeroVal]bool, players []string) string {
 	}
 	sort.Strings(ret)
 	key := strings.Join(ret, ",") + "," + strings.Join(players, ",")
-	//fmt.Printf("%v\n", key)
 	return key
 }
 
@@ -219,8 +175,6 @@ func recordMemo2(memoKey string, pds []PlayerDefenders, score float32, err error
 	memo2[memoKey] = memoItem2{pds: pds, score: score, err: err, callArgs: callArgs}
 	memoLock.Unlock()
 }
-
-//var first = map[string]bool{}
 
 func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string][]Champ, players []string, callArgs Defenders) ([]PlayerDefenders, float32, error) {
 	best := []PlayerDefenders{}
@@ -235,9 +189,6 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 	memoLock.Unlock()
 	if ok {
 		memoCount++
-		if memoCount%100 == 0 {
-			//fmt.Printf(".")
-		}
 
 		ch <- memoItem2{pds: mi.pds, score: mi.score, err: mi.err, callArgs: callArgs}
 		return mi.pds, mi.score, mi.err
@@ -245,27 +196,21 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 
 	if len(players) != 0 {
 		p := players[0]
-		/*
-		   if players[len(players) - 1] == "Cantona" {
-		     fmt.Printf("player %v\n", p)
-		   }
-		*/
 		playerChamps := roster[p]
-		//fmt.Printf("playerChamps: %v", playerChamps)
+
 		var reducedChamps []Champ
 		var lockedChamps []Champ
 		var lockedChampScore float32
 
 		var debug bool
-		//if p == "sugar" { debug = true }
 
 		for _, c := range playerChamps {
 			// all locked nodes should also already be in the diversity map
-			if c.lockedNode != 0 {
+			if c.LockedNode != 0 {
 				lockedChamps = append(lockedChamps, c)
-				lockedChampScore += champScore(c)
+				lockedChampScore += ChampScore(c)
 			}
-			if _, ok := diversity[c.champ]; ok {
+			if _, ok := diversity[c.Champ]; ok {
 				continue
 			}
 
@@ -274,7 +219,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		if len(reducedChamps) < playerMax {
 			recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
 			ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
-			//fmt.Printf("Failing due to %v %v %v\n", p, reducedChamps, diversity)
+
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
 		combos := teamCombinations(playerMax-len(lockedChamps), reducedChamps)
@@ -297,7 +242,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		for _, d := range combos {
 			newDiversity := copyDiversity(diversity)
 			for _, champ := range d.champs {
-				newDiversity[champ.champ] = true
+				newDiversity[champ.Champ] = true
 			}
 			calls++
 			go findBestBG(newCh, newDiversity, roster, players[1:], d)
@@ -306,7 +251,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 			select {
 			case mi := <-newCh:
 				result, newScore, err, ca := mi.pds, mi.score, mi.err, mi.callArgs
-				//fmt.Printf("result: %v ca: %v\n", result, ca)
+
 				if err != nil {
 					continue
 				}
@@ -319,15 +264,15 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 	}
 	recordMemo2(memoKey, best, bestScore, nil, callArgs)
 	ch <- memoItem2{pds: best, score: bestScore, err: nil, callArgs: callArgs}
-	//fmt.Printf("returning at end\n")
+
 	return best, bestScore, nil
 }
 
 func findBestBGHelper(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string][]Champ, players []string, callArgs Defenders) ([]PlayerDefenders, float32, error) {
 	for _, p := range players {
 		for _, c := range roster[p] {
-			if c.lockedNode != 0 {
-				diversity[c.champ] = true
+			if c.LockedNode != 0 {
+				diversity[c.Champ] = true
 			}
 		}
 	}
@@ -380,75 +325,40 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
 
 	assigned := false
 	c := remainingChamps[0]
-	debug := false
-	if c.champ == CosmicGhostRider {
-		//debug = true
-	}
-	if champValue(c) < 7 {
+
+	if ChampValue(c) < 7 {
 		skippedChamps = append(skippedChamps, c)
 		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
 	}
-	if debug {
-		fmt.Printf("%v\n", c)
-	}
+
 	var count int
 	for n := 55; n > 0; n-- {
-		if xx, ok := occupiedNodes[n]; ok {
-			if debug {
-				fmt.Printf("skipping %v %v\n", n, xx)
-			}
+		if _, ok := occupiedNodes[n]; ok {
 			continue
 		}
-		//idx := sort.Search(len(Nodes[n]), func (i int) bool { if Nodes[n][i] == c.champ { return true } else { return false }})
 
-		if Contains(Nodes[n], c.champ) {
+		if Contains(Nodes[n], c.Champ) {
 			count++
 			assigned = true
 			newOccupiedNodes := copyOccupiedNodes(occupiedNodes)
 			newOccupiedNodes[n] = c
-			//fmt.Printf("Found %v at node %v index %v\n", c, n, idx)
+
 			result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:], skippedChamps)
 			if err == nil && score+1 > bestScore {
 				bestScore = score + 1
 				bestMap = result
 				bestMap[c] = n
 			}
-		} else {
-			if debug {
-				fmt.Printf("Could not find %v in node %v\n", c, n)
-			}
-		}
+		} 
 		if count > 1 {
-			if debug {
-				fmt.Printf("breaking here=====================\n")
-			}
-			//fmt.Printf("%v\n", len(remainingChamps))
 			break
 		}
 	}
 	if !assigned {
-		//fmt.Printf("Skipping assignment of %v (%v)\n", c, len(remainingChamps))
 		skippedChamps = append(skippedChamps, c)
 		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
 	}
 
-	/*
-	   node := Nodes[startNode]
-	   for idx, h := range node {
-	     if h == MaxHeroVal {
-	     }
-
-	     remaining := removeFromRemainingChamps(remainingChamps, h)
-	     result, score, err := assignNode(startNode - 1, remaining)
-
-	     if err != nil && score > bestScore {
-	       bestScore = score + 1
-	       result[n] = h
-	       bestMap = result
-	     }
-	   }
-
-	*/
 	return bestMap, bestScore, nil
 }
 
@@ -456,9 +366,9 @@ func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, rema
 	locked := map[Champ]int{}
 	for _, champlist := range bg {
 		for _, c := range champlist {
-			if c.lockedNode != 0 {
-				occupiedNodes[c.lockedNode] = c
-				locked[c] = c.lockedNode
+			if c.LockedNode != 0 {
+				occupiedNodes[c.LockedNode] = c
+				locked[c] = c.LockedNode
 			}
 		}
 	}
@@ -500,7 +410,7 @@ func permutations(arr []string) [][]string {
 }
 
 func Insert(sorted []Champ, champ Champ) []Champ {
-	i := sort.Search(len(sorted), func(i int) bool { return champScore(sorted[i]) < champScore(champ) })
+	i := sort.Search(len(sorted), func(i int) bool { return ChampScore(sorted[i]) < ChampScore(champ) })
 	sorted = append(sorted, Champ{})
 	copy(sorted[i+1:], sorted[i:])
 	sorted[i] = champ
@@ -508,35 +418,8 @@ func Insert(sorted []Champ, champ Champ) []Champ {
 }
 
 func run(bg map[string][]Champ) {
-	ch := make(chan memoItem2)
 	t := time.Now()
-	//combos := teamCombinations(5, bg1_2["sugar"], "sugar")
-	//result, score, err := findBestBG(ch, map[HeroVal]bool{}, bg1_2, []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface"})
-	/*
-		players := []string{
-			"sugar",
-			"dhdhqqq",
-			"TomJenks",
-			"LivingArtiface",
-			"Yves",
-			"Nino",
-			"Timzo",
-			"Cantona",
-			"Spickster",
-			"MaltLicker"}
-	  players := []string{
-	    "Easy",
-	    "Wayne",
-	    "MarjorieZ",
-	    "Emodiva",
-	    "Aaron",
-	    "Mike-781",
-	    "Spliffy",
-	    "WebSlinger",
-	    "Basher",
-	    "Wellsz",
-	  }
-	*/
+
 	var players []string
 	for p, _ := range bg {
 		players = append(players, p)
@@ -554,6 +437,7 @@ func run(bg map[string][]Champ) {
 		fmt.Printf("\tTrying %v\n", playerList)
 
 		t = time.Now()
+	ch := make(chan memoItem2)
 		go findBestBGHelper(ch, map[HeroVal]bool{}, bg, playerList, Defenders{})
 		select {
 		case mi := <-ch:
@@ -612,54 +496,11 @@ func run(bg map[string][]Champ) {
 		var output []string
 		output = append(output, fmt.Sprintf("%s: ", pd.player))
 		for _, c := range pd.defenders.champs {
-			output = append(output, c.champ.String())
+			output = append(output, c.Champ.String())
 			output = append(output, fmt.Sprintf("(%v) ", result[c]))
 		}
 		fmt.Printf("%v\n", strings.Join(output, ""))
 	}
-
-	/*
-	    result2, _, _ := assignChamps(assigned, unplacedChamps)
-	    fmt.Printf("result length: %v\n", len(result))
-	    var maplines2 []string
-	    assigned := map[int]Champ{}
-	    for c, n := range result2 {
-	      assigned[n] = c
-	      maplines2= append(maplines2, fmt.Sprintf("--%02d: %v", n, c))
-	    }
-	    sort.Strings(maplines2)
-	    fmt.Print(strings.Join(maplines2, "\n"))
-	  }
-	*/
-
-	/*
-	  var players []string
-	  for p, _ := range bg1_2 {
-	    players = append(players, p)
-	  }
-	  fmt.Printf("players: %v\n", players)
-	  players = []string{"sugar", "dhdhqqq", "TomJenks", "LivingArtiface", "Yves", "Nino"}
-
-	  ch := make(chan BGScore)
-	  t := time.Now()
-	  battleGroup := map[string]Defenders{}
-	  //score := findBestRoster(ch, battleGroup, players)
-	  var score BGScore
-	  go findBestRoster(ch, battleGroup, players)
-	  select {
-	  case result := <-ch:
-	    score = result
-	  }
-
-	  //bestNodes, score := result.nodes, result.score
-	  d := time.Now().Sub(t)
-
-	  //PrintNodes(bestNodes)
-
-	  fmt.Printf("%v\n", score)
-	  fmt.Printf("Took %v\n", d)
-	  //fmt.Printf("Trying %v Trying 2 %v\n", tryingCount, trying2Count)
-	*/
 }
 
 func main() {
