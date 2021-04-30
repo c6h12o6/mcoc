@@ -349,7 +349,7 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
 				bestMap = result
 				bestMap[c] = n
 			}
-		} 
+		}
 		if count > 1 {
 			break
 		}
@@ -503,6 +503,23 @@ func run(bg map[string][]Champ) {
 	}
 }
 
+type masteries struct {
+  Suicides bool
+  MD int
+}
+
+var masteryMap = map[string]masteries {
+  "sugar": masteries{false, 5},
+  "TomJenks": masteries{false, 3},
+  "Nino": masteries{true, 0},
+  "Easy": masteries{true, 0},
+  "dhdhqqq": masteries{false, 3},
+  "Spickster": masteries{true, 0},
+  "Emodiva": masteries{false, 4},
+  "LivingArtiface": masteries{false, 2},
+  "Cantona": masteries{false, 0},
+}
+
 func main() {
 	bg1 = map[string][]Champ{
 		"sugar": []Champ{
@@ -535,7 +552,7 @@ func main() {
 		"TomJenks": []Champ{
 			Champ{Thing, 6, 3, 200, 53},
 			NewChamp(HitMonkey, 6, 3, 20),
-			NewChamp(DoctorDoom, 5, 5, 20),
+			Champ{DoctorDoom, 6, 3, 20, 55},
 			NewChamp(ProfessorX, 5, 5, 20),
 			NewChamp(Sasquatch, 5, 5, 20),
 			NewChamp(SpiderHam, 5, 5, 20),
@@ -551,7 +568,7 @@ func main() {
 		},
 		"LivingArtiface": []Champ{
 			NewChamp(SilverSurfer, 5, 5, 20),
-			Champ{DoctorDoom, 5, 5, 20, 55},
+			NewChamp(DoctorDoom, 5, 5, 20),
 			NewChamp(SpiderManStealth, 5, 5, 20),
 			NewChamp(CaptainMarvelMovie, 5, 5, 20),
 			NewChamp(Namor, 5, 5, 20),
