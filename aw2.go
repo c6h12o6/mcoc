@@ -1,6 +1,7 @@
 package main
 
 import . "../mcoc/globals"
+import "../mcoc/smp"
 
 //import "github.com/satori/go.uuid"
 import "fmt"
@@ -367,18 +368,99 @@ func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, rema
 	for _, champlist := range bg {
 		for _, c := range champlist {
 			if c.LockedNode != 0 {
+        fmt.Printf("%v is locked\n", c.LockedNode)
 				occupiedNodes[c.LockedNode] = c
 				locked[c] = c.LockedNode
 			}
 		}
 	}
 
+  nodeMap := map[int]int{}
+  champMap := map[HeroVal]int{}
+  reverseChampMap := map[int]Champ{}
+  var nodePersonId int
+
+  var champPreference []int
+  for n := 55; n > 0; n-- {
+    if n == 1 || n == 3 || n == 4 || n == 5 || n == 6 {
+      continue
+    }
+    if _, ok := occupiedNodes[n]; !ok {
+      champPreference = append(champPreference, nodePersonId)
+      nodeMap[nodePersonId] = n
+      nodePersonId++
+    }
+  }
+  fmt.Printf("%v\n", nodeMap)
+
+  champPersonId := 0
+  var champPeople []smp.Person
+  for idx, c := range remainingChamps {
+    if c.LockedNode != 0 {
+      continue
+    }
+    champMap[c.Champ] = champPersonId
+    reverseChampMap[champPersonId] = c
+    champPersonId++
+    champPeople = append(champPeople, smp.Person{ID: idx, Prefers: champPreference})
+  }
+  fmt.Printf("%v\n", champMap)
+
+  fmt.Printf("%v %v\n", len(nodeMap), len(champMap))
+
+  var nodePeople []smp.Person
+  for idx := 0; idx < len(nodeMap); idx++ {
+    fmt.Printf("idx: %v, node %v\n", idx, nodeMap[idx])
+
+    var preferences []int
+    seen := map[HeroVal]bool{}
+
+    for _, h := range Nodes[nodeMap[idx]] {
+      // If the champ isn't an option on this roster, skip it
+      if _, ok := champMap[h]; !ok {
+        continue
+      }
+
+      // Handle legacy code
+      if h == MaxHeroVal {
+        break
+      }
+      seen[h] = true
+      preferences = append(preferences, champMap[h])
+    }
+    // fill in from least powerful to most powerful so we don't steal away a more powerful
+    // champ from a node theyre good on
+    for ii := len(remainingChamps)-1; ii >= 0; ii-- {
+      c := remainingChamps[ii]
+      if _, ok := seen[c.Champ]; !ok && c.LockedNode == 0 {
+        preferences = append(preferences, champMap[c.Champ])
+      }
+    }
+
+    fmt.Printf("preferences: %v %v\n", len(preferences), preferences) 
+    nodePeople = append(nodePeople, smp.Person{ID: idx, Prefers: preferences})
+  }
+
+  smp.StageMarriage(nodePeople, champPeople, len(champPeople))
+
+  ret := map[Champ]int{}
+  for i := 0; i < len(champPeople); i++ {
+    ret[reverseChampMap[i]] = nodeMap[champPeople[i].Partner.ID]
+  }
+	for k, v := range locked {
+		ret[k] = v
+  }
+
+  return ret, 1, nil
+
+  /*
 	result, score, err := assignChamps(occupiedNodes, remainingChamps, skippedChamps)
 	fmt.Printf("adding back locked champs %v\n", locked)
 	for k, v := range locked {
 		result[k] = v
 	}
 	return result, score, err
+  */
 }
 
 func permutations(arr []string) [][]string {
@@ -431,7 +513,8 @@ func run(bg map[string][]Champ) {
 
 	var bestResult []PlayerDefenders
 	var bestScore float32
-	for n := 0; n < 100; n++ {
+  tStart := time.Now()
+	for ; time.Now().Sub(tStart) < time.Minute; {
 		memo2 = map[string]memoItem2{}
 		playerList := playerPermutations[rand.Intn(len(playerPermutations))]
 		fmt.Printf("\tTrying %v\n", playerList)
@@ -518,6 +601,10 @@ var masteryMap = map[string]masteries {
   "Emodiva": masteries{false, 4},
   "LivingArtiface": masteries{false, 2},
   "Cantona": masteries{false, 0},
+  "MaltLicker": masteries{false, 0},
+  "Marjoriez": masteries{false, 3},
+  "Webslinger": masteries{false, 2},
+  "Mike-781": masteries{true, 0},
 }
 
 func main() {
@@ -769,7 +856,7 @@ func main() {
 			NewChamp(Domino, 5, 5, 20),
 			NewChamp(HumanTorch, 5, 5, 20),
 			NewChamp(SpiderManStealth, 5, 5, 20),
-			NewChamp(NickFury, 5, 5, 20),
+			//NewChamp(NickFury, 5, 5, 20),
 			/*
 			   NewChamp(Hulkbuster, 5, 4, 20),
 			   NewChamp(SpiderGwen, 5, 4, 20),

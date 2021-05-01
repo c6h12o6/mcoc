@@ -33,7 +33,7 @@ var Nodes = map[int][]HeroVal {
   23: []HeroVal{Korg, EbonyMaw},
   24: []HeroVal{Thing, Warlock, Terrax, Dragonman, MaxHeroVal},
   25: []HeroVal{Mojo, AirWalker, Thing, Domino},
-  26: []HeroVal{Guillotine2099, Void, Quake, Mangog, SorcererSupreme, ScarletWitch, Sentinel, Nova},
+  26: []HeroVal{Void, Quake, Guillotine2099, Mangog, SorcererSupreme, ScarletWitch, Sentinel, Nova},
   27: []HeroVal{Annihilus, Havok, SilverSurfer, SpiderHam, BlackWidowClaireVoyant, MisterFantastic},
   28: []HeroVal{Iceman, Mephisto, MaxHeroVal},
   29: []HeroVal{Nova, ThorRagnarok},
