@@ -78,7 +78,7 @@ func combinations(iterable []int, r int) [][]int {
 
 // teamCombinations creates all combinations of all posssible champions
 // into groups of "teamsize" and populates their synergy count
-func teamCombinations(teamsize int, roster []Champ) []Defenders {
+func teamCombinations(teamsize int, roster []Champ, md int, suicides bool) []Defenders {
 	// TODO maybe only do this once
 	var indices []int
 	var teams []Defenders
@@ -98,7 +98,7 @@ func teamCombinations(teamsize int, roster []Champ) []Defenders {
 		var score float32
 		for _, idx := range teamnos {
 			team.champs = append(team.champs, roster[idx])
-			score += ChampScore(roster[idx])
+			score += ChampScoreWithMasteries(roster[idx], md, suicides)
 		}
 		team.score = score
 		// that has a synergy count of 0. They can't help our count
@@ -198,6 +198,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 	if len(players) != 0 {
 		p := players[0]
 		playerChamps := roster[p]
+    mastery := masteryMap[p]
 
 		var reducedChamps []Champ
 		var lockedChamps []Champ
@@ -209,7 +210,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 			// all locked nodes should also already be in the diversity map
 			if c.LockedNode != 0 {
 				lockedChamps = append(lockedChamps, c)
-				lockedChampScore += ChampScore(c)
+				lockedChampScore += ChampScoreWithMasteries(c, mastery.MD, mastery.Suicides)
 			}
 			if _, ok := diversity[c.Champ]; ok {
 				continue
@@ -223,7 +224,7 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
-		combos := teamCombinations(playerMax-len(lockedChamps), reducedChamps)
+		combos := teamCombinations(playerMax-len(lockedChamps), reducedChamps, mastery.MD, mastery.Suicides)
 		combos = combos[:int(math.Min(float64(len(combos)), 5))]
 		newCombos := make([]Defenders, len(combos))
 
@@ -552,7 +553,7 @@ func run(bg map[string][]Champ) {
 	fmt.Printf("Score: %v\n", bestScore)
 	fmt.Printf("Allchamps: %v\n", allChamps)
 
-	result, _, _ := assignChampsHelper(bg1, map[int]Champ{}, allChamps, []Champ{})
+	result, _, _ := assignChampsHelper(bg, map[int]Champ{}, allChamps, []Champ{})
 	fmt.Printf("result length: %v\n", len(result))
 	var maplines []string
 	assigned := map[int]Champ{}
@@ -888,5 +889,5 @@ func main() {
 		},
 	}
 
-	run(bg1)
+	run(bg3)
 }
