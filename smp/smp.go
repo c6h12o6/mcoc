@@ -56,7 +56,7 @@ func perferredPartner(man *Person, woman *Person, size int) bool {
 func StageMarriage(men []Person, women []Person, size int) {
 	bachelors := make([]*Person, size)
 	bachelorsSize := size
-  fmt.Printf("size is %v\n", size)
+	fmt.Printf("size is %v\n", size)
 	for i := 0; i < size; i++ {
 		bachelors[i] = &men[i]
 	}
