@@ -1,6 +1,6 @@
 
 // The seatin package correlates a given hero to his
-// defender quality. Note: this is based on seatin's 
+// defender quality. Note: this used to be based on seatin's 
 // defender ranking, but modified given my opinion
 // and was not created with any direct input from seatin
 package seatin
