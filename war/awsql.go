@@ -15,10 +15,10 @@ import "math/rand"
 import "os"
 
 import (
-		"log"
-		"database/sql"
-    _ "github.com/go-sql-driver/mysql"
-    _ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
+	"database/sql"
+	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	"log"
 )
 
 var playerMax = 5
@@ -137,7 +137,6 @@ func (d *Defenders) String() string {
 	return strings.Join(ret, ",")
 }
 
-
 func copyDiversity(d map[HeroVal]bool) map[HeroVal]bool {
 	ret := map[HeroVal]bool{}
 	for k, v := range d {
@@ -192,8 +191,8 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 	if len(players) != 0 {
 		p := players[0]
 		playerChamps := roster[p]
-    //mastery := masteryMap[p]
-    mastery := Player{}
+		//mastery := masteryMap[p]
+		mastery := Player{}
 
 		var reducedChamps []Champ
 		var lockedChamps []Champ
@@ -364,90 +363,90 @@ func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, rema
 	for _, champlist := range bg {
 		for _, c := range champlist {
 			if c.LockedNode != 0 {
-        fmt.Printf("%v is locked\n", c.LockedNode)
+				fmt.Printf("%v is locked\n", c.LockedNode)
 				occupiedNodes[c.LockedNode] = c
 				locked[c] = c.LockedNode
 			}
 		}
 	}
 
-  nodeMap := map[int]int{}
-  champMap := map[HeroVal]int{}
-  reverseChampMap := map[int]Champ{}
-  var nodePersonId int
+	nodeMap := map[int]int{}
+	champMap := map[HeroVal]int{}
+	reverseChampMap := map[int]Champ{}
+	var nodePersonId int
 
-  var champPreference []int
-  for n := 55; n > 0; n-- {
-    if n == 1 || n == 3 || n == 4 || n == 5 || n == 6 {
-      continue
-    }
-    if _, ok := occupiedNodes[n]; !ok {
-      champPreference = append(champPreference, nodePersonId)
-      nodeMap[nodePersonId] = n
-      nodePersonId++
-    }
-  }
-  fmt.Printf("%v\n", nodeMap)
+	var champPreference []int
+	for n := 55; n > 0; n-- {
+		if n == 1 || n == 3 || n == 4 || n == 5 || n == 6 {
+			continue
+		}
+		if _, ok := occupiedNodes[n]; !ok {
+			champPreference = append(champPreference, nodePersonId)
+			nodeMap[nodePersonId] = n
+			nodePersonId++
+		}
+	}
+	fmt.Printf("%v\n", nodeMap)
 
-  champPersonId := 0
-  var champPeople []smp.Person
-  for idx, c := range remainingChamps {
-    if c.LockedNode != 0 {
-      continue
-    }
-    champMap[c.Champ] = champPersonId
-    reverseChampMap[champPersonId] = c
-    champPersonId++
-    champPeople = append(champPeople, smp.Person{ID: idx, Prefers: champPreference})
-  }
-  fmt.Printf("%v\n", champMap)
+	champPersonId := 0
+	var champPeople []smp.Person
+	for idx, c := range remainingChamps {
+		if c.LockedNode != 0 {
+			continue
+		}
+		champMap[c.Champ] = champPersonId
+		reverseChampMap[champPersonId] = c
+		champPersonId++
+		champPeople = append(champPeople, smp.Person{ID: idx, Prefers: champPreference})
+	}
+	fmt.Printf("%v\n", champMap)
 
-  fmt.Printf("%v %v\n", len(nodeMap), len(champMap))
+	fmt.Printf("%v %v\n", len(nodeMap), len(champMap))
 
-  var nodePeople []smp.Person
-  for idx := 0; idx < len(nodeMap); idx++ {
-    fmt.Printf("idx: %v, node %v\n", idx, nodeMap[idx])
+	var nodePeople []smp.Person
+	for idx := 0; idx < len(nodeMap); idx++ {
+		fmt.Printf("idx: %v, node %v\n", idx, nodeMap[idx])
 
-    var preferences []int
-    seen := map[HeroVal]bool{}
+		var preferences []int
+		seen := map[HeroVal]bool{}
 
-    for _, h := range Nodes[nodeMap[idx]] {
-      // If the champ isn't an option on this roster, skip it
-      if _, ok := champMap[h]; !ok {
-        continue
-      }
+		for _, h := range Nodes[nodeMap[idx]] {
+			// If the champ isn't an option on this roster, skip it
+			if _, ok := champMap[h]; !ok {
+				continue
+			}
 
-      // Handle legacy code
-      if h == MaxHeroVal {
-        break
-      }
-      seen[h] = true
-      preferences = append(preferences, champMap[h])
-    }
-    // fill in from least powerful to most powerful so we don't steal away a more powerful
-    // champ from a node theyre good on
-    for ii := len(remainingChamps)-1; ii >= 0; ii-- {
-      c := remainingChamps[ii]
-      if _, ok := seen[c.Champ]; !ok && c.LockedNode == 0 {
-        preferences = append(preferences, champMap[c.Champ])
-      }
-    }
+			// Handle legacy code
+			if h == MaxHeroVal {
+				break
+			}
+			seen[h] = true
+			preferences = append(preferences, champMap[h])
+		}
+		// fill in from least powerful to most powerful so we don't steal away a more powerful
+		// champ from a node theyre good on
+		for ii := len(remainingChamps) - 1; ii >= 0; ii-- {
+			c := remainingChamps[ii]
+			if _, ok := seen[c.Champ]; !ok && c.LockedNode == 0 {
+				preferences = append(preferences, champMap[c.Champ])
+			}
+		}
 
-    fmt.Printf("preferences: %v %v\n", len(preferences), preferences) 
-    nodePeople = append(nodePeople, smp.Person{ID: idx, Prefers: preferences})
-  }
+		fmt.Printf("preferences: %v %v\n", len(preferences), preferences)
+		nodePeople = append(nodePeople, smp.Person{ID: idx, Prefers: preferences})
+	}
 
-  smp.StageMarriage(nodePeople, champPeople, len(champPeople))
+	smp.StageMarriage(nodePeople, champPeople, len(champPeople))
 
-  ret := map[Champ]int{}
-  for i := 0; i < len(champPeople); i++ {
-    ret[reverseChampMap[i]] = nodeMap[champPeople[i].Partner.ID]
-  }
+	ret := map[Champ]int{}
+	for i := 0; i < len(champPeople); i++ {
+		ret[reverseChampMap[i]] = nodeMap[champPeople[i].Partner.ID]
+	}
 	for k, v := range locked {
 		ret[k] = v
-  }
+	}
 
-  return ret, 1, nil
+	return ret, 1, nil
 }
 
 func permutations(arr []string) [][]string {
@@ -487,45 +486,45 @@ func Insert(sorted []Champ, champ Champ) []Champ {
 }
 
 func getBg(bg int) (map[string][]Champ, error) {
-  db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
-  defer db.Close()
+	db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
+	defer db.Close()
 
-  ret := map[string][]Champ{}
+	ret := map[string][]Champ{}
 
-  if err != nil {
-    return ret, err
-  }
+	if err != nil {
+		return ret, err
+	}
 
-  rows, err := db.Query(`select id, suicides, mystic_dispersion, name from players
+	rows, err := db.Query(`select id, suicides, mystic_dispersion, name from players
                          where alliance = ? AND BG = ?`, 1, bg)
-  if err != nil {
-    return ret, err
-  }
+	if err != nil {
+		return ret, err
+	}
 
-  for rows.Next() {
-    var player Player
-    err = rows.Scan(&player.Id, &player.Suicides, &player.MD, &player.Name)
-    if err != nil {
-      fmt.Printf("%v\n", err)
-      continue
-    }
-    fmt.Printf("%+v\n", player)
-    champRows, err := db.Query(`select heroval, stars, herorank, signature, locked from champ
+	for rows.Next() {
+		var player Player
+		err = rows.Scan(&player.Id, &player.Suicides, &player.MD, &player.Name)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			continue
+		}
+		fmt.Printf("%+v\n", player)
+		champRows, err := db.Query(`select heroval, stars, herorank, signature, locked from champ
                                 where player = ?`, player.Id)
-    var champs []Champ
-    for champRows.Next() {
-      var c Champ
-      err = champRows.Scan(&c.Champ, &c.Stars, &c.Level, &c.Sig, &c.LockedNode)
-      if err != nil {
-        fmt.Printf("%v\n", err)
-        continue
-      }
-      champs = append(champs, c)
-    }
-    ret[player.Name] = champs
-  }
+		var champs []Champ
+		for champRows.Next() {
+			var c Champ
+			err = champRows.Scan(&c.Champ, &c.Stars, &c.Level, &c.Sig, &c.LockedNode)
+			if err != nil {
+				fmt.Printf("%v\n", err)
+				continue
+			}
+			champs = append(champs, c)
+		}
+		ret[player.Name] = champs
+	}
 
-  return ret, nil
+	return ret, nil
 }
 
 func run(bg map[string][]Champ) []PlayerDefenders {
@@ -542,14 +541,14 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 
 	var bestResult []PlayerDefenders
 	var bestScore float32
-  tStart := time.Now()
-	for ; time.Now().Sub(tStart) < time.Minute; {
+	tStart := time.Now()
+	for time.Now().Sub(tStart) < time.Minute {
 		memo2 = map[string]memoItem2{}
 		playerList := playerPermutations[rand.Intn(len(playerPermutations))]
 		fmt.Printf("\tTrying %v\n", playerList)
 
 		t = time.Now()
-	ch := make(chan memoItem2)
+		ch := make(chan memoItem2)
 		go findBestBGHelper(ch, map[HeroVal]bool{}, bg, playerList, Defenders{})
 		select {
 		case mi := <-ch:
@@ -614,22 +613,21 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 		fmt.Printf("%v\n", strings.Join(output, ""))
 	}
 
-  return bestResult
+	return bestResult
 }
 
 type Player struct {
-  Id int
-  Suicides bool
-  MD int
-  Name string
+	Id       int
+	Suicides bool
+	MD       int
+	Name     string
 }
 
 func BestWarDefense(alliance int, bg int) []PlayerDefenders {
-  //writeBg(bg1)
-  bgRoster, err := getBg(bg)
-  if err != nil {
-    log.Fatal(err)
-  }
+	//writeBg(bg1)
+	bgRoster, err := getBg(bg)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return run(bgRoster)
 }
-
