@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+option go_package = "github.com/c6h12o6/mcoc/proto";
+
+package proto;
+
+service McocService {
+
+rpc AddChamp(AddChampRequest) returns (AddChampResponse) {}
+rpc LockChamp(LockChampRequest) returns (LockChampResponse) {}
+rpc ListChamps(ListChampsRequest) returns (ListChampsResponse) {}
+rpc GetWarDefense(GetWarDefenseRequest) returns (GetWarDefenseResponse) {}
+rpc UpdateChamp(AddChampRequest) returns (AddChampResponse) {}
+//rpc DelChamp(DelChampRequest) returns (DelChampResponse) {}
+
+}
+
+message Champ {
+  string champ_name = 1;
+  int32 stars = 2;
+  int32 rank = 3;
+  int32 sig = 4;
+  int32 locked_node = 5;
+}
+
+message AddChampRequest {
+  Champ champ = 1;
+  string player = 2;
+}
+
+message AddChampResponse {
+  int32 id = 1;
+}
+
+message LockChampRequest {
+  Champ champ = 1;
+  string player = 2;
+}
+
+message LockChampResponse {
+  int32 id = 1;
+}
+
+message ListChampsRequest {
+  string player = 1;
+}
+message ListChampsResponse {
+  repeated Champ champs = 1;
+}
+
+message Assignment {
+  string player = 1;
+  repeated Champ champs = 2;
+}
+
+message GetWarDefenseRequest {
+  int32 alliance = 1;
+  int32 bg = 2;
+}
+
+message GetWarDefenseResponse {
+  repeated Assignment assignments = 1;
+}

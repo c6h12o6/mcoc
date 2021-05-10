@@ -1,7 +1,7 @@
 package globals
 
 import "fmt"
-import "../smp"
+import "github.com/c6h12o6/mcoc/smp"
 
 type Champ struct {
 	Champ      HeroVal
