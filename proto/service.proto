@@ -11,11 +11,14 @@ rpc LockChamp(LockChampRequest) returns (LockChampResponse) {}
 rpc ListChamps(ListChampsRequest) returns (ListChampsResponse) {}
 rpc GetWarDefense(GetWarDefenseRequest) returns (GetWarDefenseResponse) {}
 rpc UpdateChamp(AddChampRequest) returns (AddChampResponse) {}
-//rpc DelChamp(DelChampRequest) returns (DelChampResponse) {}
+rpc GetAllChamps(GetAllChampsRequest) returns (GetAllChampsResponse) {}
+rpc DelChamp(DelChampRequest) returns (DelChampResponse) {}
+rpc GetNodePreferences(GetNodePreferencesRequest) returns (GetNodePreferencesResponse) {}
 
 }
 
 message Champ {
+  int32 id = 10;
   string champ_name = 1;
   int32 stars = 2;
   int32 rank = 3;
@@ -25,7 +28,10 @@ message Champ {
 
 message AddChampRequest {
   Champ champ = 1;
-  string player = 2;
+  oneof identifier {
+    string player = 2;
+    int32 id = 3;
+  }
 }
 
 message AddChampResponse {
@@ -42,11 +48,35 @@ message LockChampResponse {
 }
 
 message ListChampsRequest {
-  string player = 1;
+  oneof identifier {
+    string player = 1;
+    int32 id = 2;
+  }
 }
 message ListChampsResponse {
   repeated Champ champs = 1;
+  string player = 2;
 }
+
+message PlayerData {
+  string name = 1;
+  int32 id = 2;
+  int32 bg = 3;
+}
+message ListPlayersRequest {
+  int32 alliance = 1;
+}
+message ListPlayersResponse {
+  repeated PlayerData players = 1;
+}
+
+message SavePlayersRequest {
+  int32 alliance = 1;
+  repeated PlayerData players = 2;
+}
+message SavePlayersResponse {
+}
+
 
 message Assignment {
   string player = 1;
@@ -61,3 +91,30 @@ message GetWarDefenseRequest {
 message GetWarDefenseResponse {
   repeated Assignment assignments = 1;
 }
+
+message GetAllChampsRequest {}
+message GetAllChampsResponse {
+  repeated string names = 1;
+}
+
+message DelChampRequest {
+  int32 id = 1;
+}
+message DelChampResponse {}
+
+message GetNodePreferencesRequest {
+  int32 alliance_id = 1;
+}
+message Node {
+  int32 node_id = 1;
+  repeated string champ_name = 2;
+}
+message GetNodePreferencesResponse {
+  repeated Node nodes = 1;
+}
+
+message SetNodePreferencesRequest {
+  int32 alliance_id = 1;
+  repeated Node nodes = 2;
+}
+message SetNodePreferencesResponse {}

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.1.0
 // - protoc             v3.15.7
-// source: proto/service.proto
+// source: service.proto
 
 package proto
 
@@ -27,6 +27,9 @@ type McocServiceClient interface {
 	ListChamps(ctx context.Context, in *ListChampsRequest, opts ...grpc.CallOption) (*ListChampsResponse, error)
 	GetWarDefense(ctx context.Context, in *GetWarDefenseRequest, opts ...grpc.CallOption) (*GetWarDefenseResponse, error)
 	UpdateChamp(ctx context.Context, in *AddChampRequest, opts ...grpc.CallOption) (*AddChampResponse, error)
+	GetAllChamps(ctx context.Context, in *GetAllChampsRequest, opts ...grpc.CallOption) (*GetAllChampsResponse, error)
+	DelChamp(ctx context.Context, in *DelChampRequest, opts ...grpc.CallOption) (*DelChampResponse, error)
+	GetNodePreferences(ctx context.Context, in *GetNodePreferencesRequest, opts ...grpc.CallOption) (*GetNodePreferencesResponse, error)
 }
 
 type mcocServiceClient struct {
@@ -82,6 +85,33 @@ func (c *mcocServiceClient) UpdateChamp(ctx context.Context, in *AddChampRequest
 	return out, nil
 }
 
+func (c *mcocServiceClient) GetAllChamps(ctx context.Context, in *GetAllChampsRequest, opts ...grpc.CallOption) (*GetAllChampsResponse, error) {
+	out := new(GetAllChampsResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/GetAllChamps", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcocServiceClient) DelChamp(ctx context.Context, in *DelChampRequest, opts ...grpc.CallOption) (*DelChampResponse, error) {
+	out := new(DelChampResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/DelChamp", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcocServiceClient) GetNodePreferences(ctx context.Context, in *GetNodePreferencesRequest, opts ...grpc.CallOption) (*GetNodePreferencesResponse, error) {
+	out := new(GetNodePreferencesResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/GetNodePreferences", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McocServiceServer is the server API for McocService service.
 // All implementations must embed UnimplementedMcocServiceServer
 // for forward compatibility
@@ -91,6 +121,9 @@ type McocServiceServer interface {
 	ListChamps(context.Context, *ListChampsRequest) (*ListChampsResponse, error)
 	GetWarDefense(context.Context, *GetWarDefenseRequest) (*GetWarDefenseResponse, error)
 	UpdateChamp(context.Context, *AddChampRequest) (*AddChampResponse, error)
+	GetAllChamps(context.Context, *GetAllChampsRequest) (*GetAllChampsResponse, error)
+	DelChamp(context.Context, *DelChampRequest) (*DelChampResponse, error)
+	GetNodePreferences(context.Context, *GetNodePreferencesRequest) (*GetNodePreferencesResponse, error)
 	mustEmbedUnimplementedMcocServiceServer()
 }
 
@@ -112,6 +145,15 @@ func (UnimplementedMcocServiceServer) GetWarDefense(context.Context, *GetWarDefe
 }
 func (UnimplementedMcocServiceServer) UpdateChamp(context.Context, *AddChampRequest) (*AddChampResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateChamp not implemented")
+}
+func (UnimplementedMcocServiceServer) GetAllChamps(context.Context, *GetAllChampsRequest) (*GetAllChampsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllChamps not implemented")
+}
+func (UnimplementedMcocServiceServer) DelChamp(context.Context, *DelChampRequest) (*DelChampResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DelChamp not implemented")
+}
+func (UnimplementedMcocServiceServer) GetNodePreferences(context.Context, *GetNodePreferencesRequest) (*GetNodePreferencesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNodePreferences not implemented")
 }
 func (UnimplementedMcocServiceServer) mustEmbedUnimplementedMcocServiceServer() {}
 
@@ -216,6 +258,60 @@ func _McocService_UpdateChamp_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McocService_GetAllChamps_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllChampsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).GetAllChamps(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/GetAllChamps",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).GetAllChamps(ctx, req.(*GetAllChampsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McocService_DelChamp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DelChampRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).DelChamp(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/DelChamp",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).DelChamp(ctx, req.(*DelChampRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McocService_GetNodePreferences_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodePreferencesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).GetNodePreferences(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/GetNodePreferences",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).GetNodePreferences(ctx, req.(*GetNodePreferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McocService_ServiceDesc is the grpc.ServiceDesc for McocService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -243,7 +339,19 @@ var McocService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "UpdateChamp",
 			Handler:    _McocService_UpdateChamp_Handler,
 		},
+		{
+			MethodName: "GetAllChamps",
+			Handler:    _McocService_GetAllChamps_Handler,
+		},
+		{
+			MethodName: "DelChamp",
+			Handler:    _McocService_DelChamp_Handler,
+		},
+		{
+			MethodName: "GetNodePreferences",
+			Handler:    _McocService_GetNodePreferences_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/service.proto",
+	Metadata: "service.proto",
 }

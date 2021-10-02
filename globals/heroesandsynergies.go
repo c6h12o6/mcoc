@@ -205,6 +205,18 @@ const (
     Odin
     SilverCenturion
     JabariPanther
+    ShangChi
+    MisterNegative
+    Purgatory
+    Overseer
+    Hercules
+    AmericaChavez
+    Spiderman2099
+    PeniParker
+    KittyPryde
+    Nimrod
+    AntiVenom
+    Knull
     // This should always be last
     MaxHeroVal
 )

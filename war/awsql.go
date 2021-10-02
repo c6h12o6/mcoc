@@ -22,6 +22,8 @@ import (
 )
 
 var playerMax = 5
+var problemChild map[string]int
+var problemChildLock sync.Mutex
 
 var sqlPassword = os.Getenv("CLOUD_SQL_PASSWORD")
 
@@ -216,6 +218,10 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 			recordMemo2(memoKey, nil, 0, fmt.Errorf("No valid teams"), callArgs)
 			ch <- memoItem2{pds: nil, score: 0, err: fmt.Errorf("No valid teams")}
 
+      problemChildLock.Lock()
+      problemChild[p] += 1
+      problemChildLock.Unlock()
+
 			return nil, 0, fmt.Errorf("No valid teams")
 		}
 		combos := teamCombinations(playerMax-len(lockedChamps), reducedChamps, mastery.MD, mastery.Suicides)
@@ -259,12 +265,22 @@ func findBestBG(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string
 		}
 	}
 	recordMemo2(memoKey, best, bestScore, nil, callArgs)
+  if bestScore == 0 {
+    problemChildLock.Lock()
+    defer problemChildLock.Unlock()
+    ch <- memoItem2{pds: nil, score: bestScore, err: fmt.Errorf("No valid mappings found: problemChild map: %v", problemChild), callArgs: callArgs}
+    return nil, 0, fmt.Errorf("No valid mappings found: problemChild map: %v", problemChild)
+  }
 	ch <- memoItem2{pds: best, score: bestScore, err: nil, callArgs: callArgs}
 
 	return best, bestScore, nil
 }
 
 func findBestBGHelper(ch chan memoItem2, diversity map[HeroVal]bool, roster map[string][]Champ, players []string, callArgs Defenders) ([]PlayerDefenders, float32, error) {
+  // TODO make this thread safe
+  problemChildLock.Lock()
+  problemChild = map[string]int{}
+  problemChildLock.Unlock()
 	for _, p := range players {
 		for _, c := range roster[p] {
 			if c.LockedNode != 0 {
@@ -304,7 +320,7 @@ func Contains(n []HeroVal, c HeroVal) bool {
 	return false
 }
 
-func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
+func assignChamps(preferences map[int][]HeroVal, occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
 	bestScore := 0
 	bestMap := map[Champ]int{}
 
@@ -324,7 +340,7 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
 
 	if ChampValue(c) < 7 {
 		skippedChamps = append(skippedChamps, c)
-		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
+		return assignChamps(preferences, occupiedNodes, remainingChamps[1:], skippedChamps)
 	}
 
 	var count int
@@ -339,7 +355,7 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
 			newOccupiedNodes := copyOccupiedNodes(occupiedNodes)
 			newOccupiedNodes[n] = c
 
-			result, score, err := assignChamps(newOccupiedNodes, remainingChamps[1:], skippedChamps)
+			result, score, err := assignChamps(preferences, newOccupiedNodes, remainingChamps[1:], skippedChamps)
 			if err == nil && score+1 > bestScore {
 				bestScore = score + 1
 				bestMap = result
@@ -352,13 +368,17 @@ func assignChamps(occupiedNodes map[int]Champ, remainingChamps []Champ, skippedC
 	}
 	if !assigned {
 		skippedChamps = append(skippedChamps, c)
-		return assignChamps(occupiedNodes, remainingChamps[1:], skippedChamps)
+		return assignChamps(preferences, occupiedNodes, remainingChamps[1:], skippedChamps)
 	}
 
 	return bestMap, bestScore, nil
 }
 
+func getMapPreferences(alliance int) {
+}
+
 func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, remainingChamps []Champ, skippedChamps []Champ) (map[Champ]int, int, error) {
+  fmt.Printf("assignChampsHelper!!!!!!!!!!!!!!!!!!!!!!\n");
 	locked := map[Champ]int{}
 	for _, champlist := range bg {
 		for _, c := range champlist {
@@ -377,7 +397,7 @@ func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, rema
 
 	var champPreference []int
 	for n := 55; n > 0; n-- {
-		if n == 1 || n == 3 || n == 4 || n == 5 || n == 6 {
+		if n == 1 || n == 3 || n == 5 || n == 6 || n == 8 {
 			continue
 		}
 		if _, ok := occupiedNodes[n]; !ok {
@@ -404,13 +424,19 @@ func assignChampsHelper(bg map[string][]Champ, occupiedNodes map[int]Champ, rema
 	fmt.Printf("%v %v\n", len(nodeMap), len(champMap))
 
 	var nodePeople []smp.Person
+  AWPreferences, err := getWarMap(1)
+  if err != nil {
+    fmt.Printf("error getting war map: %v", err)
+    return nil, 0, err
+  }
+
 	for idx := 0; idx < len(nodeMap); idx++ {
 		fmt.Printf("idx: %v, node %v\n", idx, nodeMap[idx])
 
 		var preferences []int
 		seen := map[HeroVal]bool{}
 
-		for _, h := range Nodes[nodeMap[idx]] {
+		for _, h := range AWPreferences[nodeMap[idx]] {
 			// If the champ isn't an option on this roster, skip it
 			if _, ok := champMap[h]; !ok {
 				continue
@@ -527,7 +553,53 @@ func getBg(bg int) (map[string][]Champ, error) {
 	return ret, nil
 }
 
-func run(bg map[string][]Champ) []PlayerDefenders {
+func getWarMap(alliance int) (map[int][]HeroVal, error) {
+	db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
+	defer db.Close()
+
+	ret := map[int][]HeroVal{}
+
+	if err != nil {
+		return ret, err
+	}
+
+	rows, err := db.Query(`select node, champ1, champ2, champ3, champ4, champ5 from nodes where alliance = ?`, alliance)
+	if err != nil {
+		return ret, err
+	}
+
+  type node struct {
+    node int
+    champ1 int
+    champ2 int
+    champ3 int
+    champ4 int
+    champ5 int
+  }
+
+	for rows.Next() {
+    n := node{}
+		err = rows.Scan(&n.node, &n.champ1, &n.champ2, &n.champ3, &n.champ4, &n.champ5)
+		if err != nil {
+			fmt.Printf("Error retrieving nodes: %v\n", err)
+			continue
+		}
+
+    ret[n.node] = []HeroVal{
+      HeroVal(n.champ1),
+      HeroVal(n.champ2),
+      HeroVal(n.champ3),
+      HeroVal(n.champ4),
+      HeroVal(n.champ5)}
+  }
+
+  fmt.Printf("full map is %v", ret)
+
+	return ret, nil
+}
+
+
+func run(bg map[string][]Champ) ([]PlayerDefenders, error) {
 	t := time.Now()
 
 	var players []string
@@ -544,6 +616,7 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 	tStart := time.Now()
 	for time.Now().Sub(tStart) < time.Minute {
 		memo2 = map[string]memoItem2{}
+    fmt.Printf("Len playerpermutaitons: %v\n", len(playerPermutations))
 		playerList := playerPermutations[rand.Intn(len(playerPermutations))]
 		fmt.Printf("\tTrying %v\n", playerList)
 
@@ -570,6 +643,13 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 		}
 	}
 
+  if bestScore == 0 {
+    problemChildLock.Lock()
+    defer problemChildLock.Unlock()
+    return nil, fmt.Errorf("No valid mappings found: problemChild map: %v", problemChild)
+  }
+
+
 	var allChamps []Champ
 	for _, pd := range bestResult {
 		for _, c := range pd.Defenders.Champs {
@@ -579,6 +659,7 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 	}
 	fmt.Printf("Score: %v\n", bestScore)
 	fmt.Printf("Allchamps: %v\n", allChamps)
+  fmt.Printf("------------------------------------------- JBF2\n")
 
 	result, _, _ := assignChampsHelper(bg, map[int]Champ{}, allChamps, []Champ{})
 	fmt.Printf("result length: %v\n", len(result))
@@ -613,7 +694,7 @@ func run(bg map[string][]Champ) []PlayerDefenders {
 		fmt.Printf("%v\n", strings.Join(output, ""))
 	}
 
-	return bestResult
+	return bestResult, nil
 }
 
 type Player struct {
@@ -623,8 +704,9 @@ type Player struct {
 	Name     string
 }
 
-func BestWarDefense(alliance int, bg int) []PlayerDefenders {
+func BestWarDefense(alliance int, bg int) ([]PlayerDefenders, error) {
 	//writeBg(bg1)
+  fmt.Printf("----------------------------------------- JBF\n")
 	bgRoster, err := getBg(bg)
 	if err != nil {
 		log.Fatal(err)
