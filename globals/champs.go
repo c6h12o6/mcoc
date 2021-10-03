@@ -9,10 +9,11 @@ type Champ struct {
 	Level      int32
 	Sig        int32
 	LockedNode int
+  AssignedNode int32
 }
 
 func NewChamp(hv HeroVal, stars int32, level int32, sig int32) Champ {
-	return Champ{hv, stars, level, sig, 0}
+	return Champ{hv, stars, level, sig, 0, 0}
 }
 
 func sigValue(a Champ) float32 {
@@ -21,9 +22,9 @@ func sigValue(a Champ) float32 {
   case UN:
     return 1.0
   case NA:
-    if a.Sig == 0 { return 0.5 } else { return 1.0 }
+    if a.Sig == 0 { return 0.75 } else { return 1.0 }
   case HS:
-    return float32(0.5) + 0.0025 * float32(a.Sig)
+    if a.Sig == 0 { return 0.75 } else { return  float32(0.75) + 0.00125 * float32(a.Sig)}
   default:
     fmt.Printf("Could not find %v\n", a)
   }

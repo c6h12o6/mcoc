@@ -13,6 +13,7 @@ import "math"
 import "github.com/bradfitz/slice"
 import "math/rand"
 import "os"
+import pb "github.com/c6h12o6/mcoc/proto"
 
 import (
 	"database/sql"
@@ -536,7 +537,7 @@ func getBg(bg int) (map[string][]Champ, error) {
 		}
 		fmt.Printf("%+v\n", player)
 		champRows, err := db.Query(`select heroval, stars, herorank, signature, locked from champ
-                                where player = ?`, player.Id)
+                                where player = ? and deleted = 0`, player.Id)
 		var champs []Champ
 		for champRows.Next() {
 			var c Champ
@@ -598,6 +599,243 @@ func getWarMap(alliance int) (map[int][]HeroVal, error) {
 	return ret, nil
 }
 
+type PlayerChamp struct {
+  Player string
+  Champ pb.Champ
+}
+
+type Algo2Memo struct {
+  pref int
+  node int
+}
+
+var algo2Memo map[Algo2Memo]string
+
+func getBestChampOptions(hv HeroVal, rosters map[string][]Champ, playerCount map[string]int, diversity map[string]bool) ([]PlayerChamp, error) {
+  //var bestChamp PlayerChamp
+  var bestScore float32
+
+  type PlayerChampScore struct {
+    pc PlayerChamp
+    score float32
+  }
+  var options []PlayerChampScore
+
+  factor := float32(0.8)
+
+  err := fmt.Errorf("Unable to find %v on an open roster", hv)
+
+  for p, champList := range rosters {
+    if playerCount[p] == 5 {
+      continue
+    }
+    for _, c := range champList {
+      if _, ok := diversity[c.Champ.String()]; !ok {
+        if hv == Empty || c.Champ == hv {
+          if score := ChampValue(c); score > factor * bestScore {
+            pc := PlayerChamp{Player: p, Champ: pb.Champ{
+                ChampName: c.Champ.String(),
+                Stars: c.Stars,
+                Rank: c.Level,
+                Sig: c.Sig,
+                LockedNode: int32(c.LockedNode),
+            }}
+            options = append(options, PlayerChampScore{pc, score})
+
+            if score > bestScore {
+              //bestChamp = pc
+              bestScore = score
+              err = nil
+            }
+            break
+          }
+        }
+      }
+    }
+  }
+  finalOptions := []PlayerChamp{}
+  for _, opt := range options {
+    fmt.Printf("\t%v %v/%v Sig: %v  Ratio: %v Score: %v\n", opt.pc.Champ.ChampName, opt.pc.Champ.Stars, opt.pc.Champ.Rank, opt.pc.Champ.Sig,
+        opt.score / bestScore, opt.score)
+    if opt.score / bestScore >= factor {
+      finalOptions = append(finalOptions, opt.pc)
+    }
+  }
+  fmt.Printf("pc for sugar is %v", playerCount["sugar"])
+  return finalOptions, err
+}
+
+func getBestChamp(hv HeroVal, rosters map[string][]Champ, playerCount map[string]int, diversity map[string]bool) (PlayerChamp, error) {
+  var bestChamp PlayerChamp
+  var bestScore float32
+
+  err := fmt.Errorf("Unable to find %v on an open roster", hv)
+
+  for p, champList := range rosters {
+    if playerCount[p] == 5 {
+      continue
+    }
+    for _, c := range champList {
+      if _, ok := diversity[c.Champ.String()]; !ok {
+        if hv == Empty || c.Champ == hv {
+          if score := ChampScore(c); score > bestScore {
+            bestChamp = PlayerChamp{Player: p, Champ: pb.Champ{
+                ChampName: c.Champ.String(),
+                Stars: c.Stars,
+                Rank: c.Level,
+                Sig: c.Sig,
+                LockedNode: int32(c.LockedNode),
+            }}
+            bestScore = score
+            err = nil
+            break
+          }
+        }
+      }
+    }
+  }
+  fmt.Printf("returning best champ: %v %v \n", bestChamp, bestScore)
+  return bestChamp, err
+}
+
+func runAlgo2(bg map[string][]Champ, defenderPreferences map[int][]HeroVal, playerCount map[string]int, solved map[int]PlayerChamp, diversity map[string]bool, maxDepth int) (map[int]PlayerChamp, int, error) {
+
+
+  for pref := 0; pref < maxDepth; pref++ {
+    // 5 is a special case, where we fill in the rest of the slots
+    for nodeNo := 55; nodeNo > 0; nodeNo-- {
+      if _, ok := solved[nodeNo]; ok {
+        continue
+      }
+      var preference HeroVal
+      if pref == 5 {
+        fmt.Printf("---------FILLING IN THE REST %v\n", diversity[Empty.String()])
+        preference = Empty
+      } else {
+        preference = defenderPreferences[nodeNo][pref]
+      }
+
+      if pref != 5 && preference == Empty {
+        continue
+      }
+      if _, ok := diversity[preference.String()]; ok {
+        fmt.Printf("Skipping %v at node %v because it's already assigned\n", preference, nodeNo)
+        continue
+      }
+      pcs := []PlayerChamp{}
+      mi := Algo2Memo{pref: pref, node: nodeNo}
+      if pref == 5 {
+        // Dont try all options when we're just filling in the map
+        pc, err := getBestChamp(preference, bg, playerCount, diversity)
+        if err != nil {
+          fmt.Printf("Cant fill %v: %v\n", nodeNo, err)
+          continue
+        }
+        pcs = append(pcs, pc)
+      } else {
+        pcsTmp, err := getBestChampOptions(preference, bg, playerCount, diversity)
+        if err != nil {
+          fmt.Printf("Cant fill %v: %v\n", nodeNo, err)
+          continue
+        }
+        smallestRoster := 9999999
+        var selectedPc PlayerChamp
+        for _, pc := range pcsTmp {
+          if len(bg[pc.Player]) < smallestRoster {
+            smallestRoster = len(bg[pc.Player])
+            selectedPc = pc
+          }
+        }
+        fmt.Printf("selecting %v for node %v: %v", selectedPc.Player, nodeNo, selectedPc.Champ.ChampName)
+        pcs = []PlayerChamp{selectedPc}
+        /*
+        pcsTmp, err := getBestChampOptions(preference, bg, playerCount, diversity)
+        if err != nil {
+          fmt.Printf("Cant fill %v: %v\n", nodeNo, err)
+          continue
+        }
+
+        if p, ok := algo2Memo[mi]; ok {
+          fmt.Printf("trying to pick %v's %v\n", p, defenderPreferences[nodeNo][pref])
+          //var best PlayerChamp
+          for _, pc := range pcsTmp {
+            if pc.Player == p && playerCount[p] != 5 {
+              pcs = []PlayerChamp{pc}
+              break
+            }
+          }
+          if len(pcs) == 0 {
+            fmt.Printf("$$$$$$$$$$$$$$$$$$$$$$$$$$ didn't expect to get here\n")
+          }
+        }
+        if len(pcs) == 0 {
+          pcs = pcsTmp
+        }
+        */
+      }
+      fmt.Printf("-- PCS is %v\n", pcs)
+      if len(pcs) == 1 {
+        pc := pcs[0]
+        fmt.Printf("playerCount for %v is %v\n", pc.Player, playerCount[pc.Player])
+        playerCount[pc.Player]++
+        pc.Champ.AssignedNode = int32(nodeNo)
+        solved[nodeNo] = PlayerChamp{Player: pc.Player, Champ: pc.Champ}
+        diversity[pc.Champ.ChampName] = true
+      } else {
+        var bestResult map[int]PlayerChamp
+        for _, pc := range pcs {
+
+          // copy some stuff
+          newSolved := map[int]PlayerChamp{}
+          for k, v := range solved {
+            newSolved[k] = v
+          }
+
+          newPlayerCount := map[string]int{}
+          for k, v := range playerCount {
+            playerCount[k] = v
+          }
+
+          newDiversity := map[string]bool{}
+          for k, v := range diversity {
+            newDiversity[k] = v
+          }
+
+          newPlayerCount[pc.Player]++
+          pc.Champ.AssignedNode = int32(nodeNo)
+          newSolved[nodeNo] = PlayerChamp{Player: pc.Player, Champ: pc.Champ}
+          newDiversity[pc.Champ.ChampName] = true
+
+          fmt.Printf("running subtree for %v from %v\n", pc.Champ.ChampName, pc.Player)
+          result, _, err := runAlgo2(bg, defenderPreferences, newPlayerCount, newSolved, newDiversity, 5)
+          if err != nil {
+            fmt.Printf("wtf: %v\n", err)
+            continue
+          }
+          playerChampsOnNodes := 0
+          for _, pcTmp := range result {
+            if pcTmp.Player == pc.Player {
+              playerChampsOnNodes++
+            }
+          }
+          bestResult = result
+        }
+
+        if bestResult == nil {
+          panic(fmt.Sprintf("Got jack squat for node %v pref %v: %v\n", nodeNo, pref, defenderPreferences[nodeNo][pref])) 
+        }
+        fmt.Printf("Saving that %v is best for %v at %v", bestResult[nodeNo].Player, bestResult[nodeNo].Champ.ChampName, nodeNo)
+        algo2Memo[mi] = bestResult[nodeNo].Player
+
+        solved[nodeNo] = bestResult[nodeNo]
+        diversity[solved[nodeNo].Champ.ChampName] = true
+        playerCount[solved[nodeNo].Player]++
+      }
+    }
+  }
+
+  return solved, 0, nil
+}
 
 func run(bg map[string][]Champ) ([]PlayerDefenders, error) {
 	t := time.Now()
@@ -688,6 +926,7 @@ func run(bg map[string][]Champ) ([]PlayerDefenders, error) {
 		var output []string
 		output = append(output, fmt.Sprintf("%s: ", pd.Player))
 		for _, c := range pd.Defenders.Champs {
+      c.AssignedNode = int32(result[c])
 			output = append(output, c.Champ.String())
 			output = append(output, fmt.Sprintf("(%v) ", result[c]))
 		}
@@ -704,6 +943,53 @@ type Player struct {
 	Name     string
 }
 
+
+func algo2Helper(roster map[string][]Champ) ([]PlayerDefenders, error) {
+
+
+  algo2Memo = map[Algo2Memo]string{}
+  defenderPreferences, err := getWarMap(1)
+  if err != nil {
+    return nil, err
+  }
+
+	assignments, _, err := runAlgo2(roster, defenderPreferences, map[string]int{}, map[int]PlayerChamp{}, map[string]bool{}, 6)
+  if err != nil {
+    fmt.Printf("algo2 failed: %v\n", err)
+    return nil, err
+  }
+
+  tmp := map[string]*Defenders{}
+  //for n, c := range assignments {
+  for idx := 55; idx > 0; idx-- {
+    c := assignments[idx]
+    fmt.Printf("%v: %v (%v, %v/%v)\n", idx, c.Champ.ChampName, c.Player, c.Champ.Stars, c.Champ.Rank)
+
+    if _, ok := tmp[c.Player]; !ok {
+      tmp[c.Player] = &Defenders{player: c.Player}
+    }
+
+    oldStyleChamp := Champ {
+        Champ: NameToValue(c.Champ.ChampName),
+        Level: c.Champ.Rank,
+        Stars: c.Champ.Stars,
+        Sig: c.Champ.Sig,
+        AssignedNode: c.Champ.AssignedNode,
+    }
+
+    tmp[c.Player].Champs = append(tmp[c.Player].Champs, oldStyleChamp)
+    tmp[c.Player].score += ChampValue(oldStyleChamp)
+  }
+
+  for p, d := range tmp {
+    fmt.Printf("%v:", p)
+    for _, c := range d.Champs {
+      fmt.Printf(" %v %v/%v (%v)", c.Champ, c.Stars, c.Level, c.AssignedNode)
+    }
+    fmt.Printf("\n");
+  }
+  return nil, fmt.Errorf("Stubbed out")
+}
 func BestWarDefense(alliance int, bg int) ([]PlayerDefenders, error) {
 	//writeBg(bg1)
   fmt.Printf("----------------------------------------- JBF\n")
@@ -711,5 +997,5 @@ func BestWarDefense(alliance int, bg int) ([]PlayerDefenders, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return run(bgRoster)
+	return algo2Helper(bgRoster)
 }

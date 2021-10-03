@@ -24,6 +24,7 @@ message Champ {
   int32 rank = 3;
   int32 sig = 4;
   int32 locked_node = 5;
+  int32 assigned_node = 6;
 }
 
 message AddChampRequest {

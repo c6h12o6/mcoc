@@ -32,6 +32,8 @@ import (
 
   "time"
 
+  "sync"
+
 	pb "github.com/c6h12o6/mcoc/proto"
 )
 
@@ -43,6 +45,7 @@ type mcocServer struct {
 }
 
 var mcoc *mcocServer
+var defenseLock sync.Mutex
 
 func (s *mcocServer) getPlayerId(player string) (int, error) {
 	var playerId int
@@ -60,7 +63,7 @@ func (s *mcocServer) addChamp(playerId int, champ HeroVal, stars int, rank int, 
 
   var err error
 	if update {
-		_, err = s.db.Exec("update champ set stars=?, herorank=?, signature=? locked=?, deleted=0 where player=? and heroval=?",
+		_, err = s.db.Exec("update champ set stars=?, herorank=?, signature=?, locked=?, deleted=0 where player=? and heroval=?",
 			stars, rank, sig, node, playerId, champ)
 	} else {
     fmt.Printf("Adding %v to %v\n", champ, playerId)
@@ -128,6 +131,7 @@ func (s *mcocServer) DelChamp(ctx context.Context, req *pb.DelChampRequest) (*pb
 
 func (s *mcocServer) LockChamp(ctx context.Context, req *pb.LockChampRequest) (*pb.LockChampResponse, error) {
 	log.Printf("Lock champ called")
+
 	return &pb.LockChampResponse{}, nil
 }
 
@@ -228,7 +232,10 @@ func (s *mcocServer) ListChamps(ctx context.Context, req *pb.ListChampsRequest) 
 
 func (s *mcocServer) GetWarDefense(ctx context.Context, req *pb.GetWarDefenseRequest) (*pb.GetWarDefenseResponse, error) {
 	var ret pb.GetWarDefenseResponse
-  fmt.Printf("calling war defense")
+  fmt.Printf("calling war defense\n")
+  fmt.Printf("acquiring\n")
+  defenseLock.Lock()
+  defer defenseLock.Unlock()
 	result, err := war.BestWarDefense(int(req.Alliance), int(req.Bg))
   if err != nil {
     return nil, err
@@ -244,6 +251,7 @@ func (s *mcocServer) GetWarDefense(ctx context.Context, req *pb.GetWarDefenseReq
 			pbc.Rank = c.Level
 			pbc.Sig = c.Sig
 			pbc.LockedNode = int32(c.LockedNode)
+      pbc.AssignedNode = c.AssignedNode
 			assignment.Champs = append(assignment.Champs, &pbc)
 		}
 		ret.Assignments = append(ret.Assignments, &assignment)
@@ -645,6 +653,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to listen: %v\n", err)
 	}
+
+  defenseLock = sync.Mutex{}
 
   r := gin.Default()
   r.Use(cors.Middleware(cors.Config{
