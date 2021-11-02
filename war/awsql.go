@@ -703,11 +703,27 @@ func runAlgo2(bg map[string][]Champ, defenderPreferences map[int][]HeroVal, play
 
   for pref := 0; pref < maxDepth; pref++ {
     // 5 is a special case, where we fill in the rest of the slots
+    processChannel := make(chan int, 300)
+    processedOnce := map[int]int{}
     for nodeNo := 55; nodeNo > 0; nodeNo-- {
+      processChannel <- nodeNo;
+    }
+    // Loop until we have 50 assignments
+    for len(processChannel) != 0 {
+      fmt.Printf("solved has %v\n", len(solved))
+      nodeNo := <- processChannel
+      fmt.Printf("======================== Processing %v\n", nodeNo)
+      var preference HeroVal
+
+      // We might reprocess this node, store it to be sure
+      processedOnce[nodeNo]++
+
+      // If we've already figured out this node, skip it
       if _, ok := solved[nodeNo]; ok {
         continue
       }
-      var preference HeroVal
+
+      // when it's 5 it's a special case filling in the rest of the map
       if pref == 5 {
         fmt.Printf("---------FILLING IN THE REST %v\n", diversity[Empty.String()])
         preference = Empty
@@ -715,15 +731,17 @@ func runAlgo2(bg map[string][]Champ, defenderPreferences map[int][]HeroVal, play
         preference = defenderPreferences[nodeNo][pref]
       }
 
+      // If there is no preference set (and we're not filling in the map) skip it
       if pref != 5 && preference == Empty {
         continue
       }
+
+      // If we've already placed that champ, skip it
       if _, ok := diversity[preference.String()]; ok {
         fmt.Printf("Skipping %v at node %v because it's already assigned\n", preference, nodeNo)
         continue
       }
       pcs := []PlayerChamp{}
-      mi := Algo2Memo{pref: pref, node: nodeNo}
       if pref == 5 {
         // Dont try all options when we're just filling in the map
         pc, err := getBestChamp(preference, bg, playerCount, diversity)
@@ -738,6 +756,12 @@ func runAlgo2(bg map[string][]Champ, defenderPreferences map[int][]HeroVal, play
           fmt.Printf("Cant fill %v: %v\n", nodeNo, err)
           continue
         }
+        if ct, _ := processedOnce[nodeNo]; ct == 1 && len(pcsTmp) > 1 {
+          fmt.Printf("Deferring processing %v at %v - %v options\n", preference, nodeNo, len(pcsTmp))
+          processChannel <- nodeNo
+          continue
+        }
+        
         smallestRoster := 9999999
         var selectedPc PlayerChamp
         for _, pc := range pcsTmp {
@@ -825,7 +849,6 @@ func runAlgo2(bg map[string][]Champ, defenderPreferences map[int][]HeroVal, play
           panic(fmt.Sprintf("Got jack squat for node %v pref %v: %v\n", nodeNo, pref, defenderPreferences[nodeNo][pref])) 
         }
         fmt.Printf("Saving that %v is best for %v at %v", bestResult[nodeNo].Player, bestResult[nodeNo].Champ.ChampName, nodeNo)
-        algo2Memo[mi] = bestResult[nodeNo].Player
 
         solved[nodeNo] = bestResult[nodeNo]
         diversity[solved[nodeNo].Champ.ChampName] = true
@@ -981,14 +1004,19 @@ func algo2Helper(roster map[string][]Champ) ([]PlayerDefenders, error) {
     tmp[c.Player].score += ChampValue(oldStyleChamp)
   }
 
+  ret := []PlayerDefenders{}
   for p, d := range tmp {
+    if p == "" {
+      continue
+    }
     fmt.Printf("%v:", p)
     for _, c := range d.Champs {
       fmt.Printf(" %v %v/%v (%v)", c.Champ, c.Stars, c.Level, c.AssignedNode)
     }
     fmt.Printf("\n");
+    ret = append(ret, PlayerDefenders{Player: p, Defenders: *d})
   }
-  return nil, fmt.Errorf("Stubbed out")
+  return ret, nil
 }
 func BestWarDefense(alliance int, bg int) ([]PlayerDefenders, error) {
 	//writeBg(bg1)

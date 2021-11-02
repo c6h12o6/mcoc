@@ -14,7 +14,9 @@ rpc UpdateChamp(AddChampRequest) returns (AddChampResponse) {}
 rpc GetAllChamps(GetAllChampsRequest) returns (GetAllChampsResponse) {}
 rpc DelChamp(DelChampRequest) returns (DelChampResponse) {}
 rpc GetNodePreferences(GetNodePreferencesRequest) returns (GetNodePreferencesResponse) {}
-
+rpc CreateAlliance(CreateAllianceRequest) returns (CreateAllianceResponse) {}
+rpc GetAllianceInfo(GetAllianceInfoRequest) returns (GetAllianceInfoResponse) {}
+rpc GetPlayerInfo(GetPlayerInfoRequest) returns (GetPlayerInfoResponse) {}
 }
 
 message Champ {
@@ -119,3 +121,26 @@ message SetNodePreferencesRequest {
   repeated Node nodes = 2;
 }
 message SetNodePreferencesResponse {}
+
+message CreateAllianceRequest {
+  string name = 1;
+  int32 player_id = 2;
+}
+message CreateAllianceResponse {
+  int32 alliance_id = 1;
+}
+
+message GetAllianceInfoRequest {
+  int32 alliance_id = 1;
+}
+message GetAllianceInfoResponse {
+  string name = 1;
+  string reference = 2;
+}
+
+message GetPlayerInfoRequest {
+  string session_id = 1;
+}
+message GetPlayerInfoResponse {
+  string name = 1;
+}

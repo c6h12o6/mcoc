@@ -30,6 +30,9 @@ type McocServiceClient interface {
 	GetAllChamps(ctx context.Context, in *GetAllChampsRequest, opts ...grpc.CallOption) (*GetAllChampsResponse, error)
 	DelChamp(ctx context.Context, in *DelChampRequest, opts ...grpc.CallOption) (*DelChampResponse, error)
 	GetNodePreferences(ctx context.Context, in *GetNodePreferencesRequest, opts ...grpc.CallOption) (*GetNodePreferencesResponse, error)
+	CreateAlliance(ctx context.Context, in *CreateAllianceRequest, opts ...grpc.CallOption) (*CreateAllianceResponse, error)
+	GetAllianceInfo(ctx context.Context, in *GetAllianceInfoRequest, opts ...grpc.CallOption) (*GetAllianceInfoResponse, error)
+	GetPlayerInfo(ctx context.Context, in *GetPlayerInfoRequest, opts ...grpc.CallOption) (*GetPlayerInfoResponse, error)
 }
 
 type mcocServiceClient struct {
@@ -112,6 +115,33 @@ func (c *mcocServiceClient) GetNodePreferences(ctx context.Context, in *GetNodeP
 	return out, nil
 }
 
+func (c *mcocServiceClient) CreateAlliance(ctx context.Context, in *CreateAllianceRequest, opts ...grpc.CallOption) (*CreateAllianceResponse, error) {
+	out := new(CreateAllianceResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/CreateAlliance", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcocServiceClient) GetAllianceInfo(ctx context.Context, in *GetAllianceInfoRequest, opts ...grpc.CallOption) (*GetAllianceInfoResponse, error) {
+	out := new(GetAllianceInfoResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/GetAllianceInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcocServiceClient) GetPlayerInfo(ctx context.Context, in *GetPlayerInfoRequest, opts ...grpc.CallOption) (*GetPlayerInfoResponse, error) {
+	out := new(GetPlayerInfoResponse)
+	err := c.cc.Invoke(ctx, "/proto.McocService/GetPlayerInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // McocServiceServer is the server API for McocService service.
 // All implementations must embed UnimplementedMcocServiceServer
 // for forward compatibility
@@ -124,6 +154,9 @@ type McocServiceServer interface {
 	GetAllChamps(context.Context, *GetAllChampsRequest) (*GetAllChampsResponse, error)
 	DelChamp(context.Context, *DelChampRequest) (*DelChampResponse, error)
 	GetNodePreferences(context.Context, *GetNodePreferencesRequest) (*GetNodePreferencesResponse, error)
+	CreateAlliance(context.Context, *CreateAllianceRequest) (*CreateAllianceResponse, error)
+	GetAllianceInfo(context.Context, *GetAllianceInfoRequest) (*GetAllianceInfoResponse, error)
+	GetPlayerInfo(context.Context, *GetPlayerInfoRequest) (*GetPlayerInfoResponse, error)
 	mustEmbedUnimplementedMcocServiceServer()
 }
 
@@ -154,6 +187,15 @@ func (UnimplementedMcocServiceServer) DelChamp(context.Context, *DelChampRequest
 }
 func (UnimplementedMcocServiceServer) GetNodePreferences(context.Context, *GetNodePreferencesRequest) (*GetNodePreferencesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodePreferences not implemented")
+}
+func (UnimplementedMcocServiceServer) CreateAlliance(context.Context, *CreateAllianceRequest) (*CreateAllianceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAlliance not implemented")
+}
+func (UnimplementedMcocServiceServer) GetAllianceInfo(context.Context, *GetAllianceInfoRequest) (*GetAllianceInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAllianceInfo not implemented")
+}
+func (UnimplementedMcocServiceServer) GetPlayerInfo(context.Context, *GetPlayerInfoRequest) (*GetPlayerInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayerInfo not implemented")
 }
 func (UnimplementedMcocServiceServer) mustEmbedUnimplementedMcocServiceServer() {}
 
@@ -312,6 +354,60 @@ func _McocService_GetNodePreferences_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McocService_CreateAlliance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAllianceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).CreateAlliance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/CreateAlliance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).CreateAlliance(ctx, req.(*CreateAllianceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McocService_GetAllianceInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllianceInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).GetAllianceInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/GetAllianceInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).GetAllianceInfo(ctx, req.(*GetAllianceInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _McocService_GetPlayerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPlayerInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McocServiceServer).GetPlayerInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.McocService/GetPlayerInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McocServiceServer).GetPlayerInfo(ctx, req.(*GetPlayerInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // McocService_ServiceDesc is the grpc.ServiceDesc for McocService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +446,18 @@ var McocService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodePreferences",
 			Handler:    _McocService_GetNodePreferences_Handler,
+		},
+		{
+			MethodName: "CreateAlliance",
+			Handler:    _McocService_CreateAlliance_Handler,
+		},
+		{
+			MethodName: "GetAllianceInfo",
+			Handler:    _McocService_GetAllianceInfo_Handler,
+		},
+		{
+			MethodName: "GetPlayerInfo",
+			Handler:    _McocService_GetPlayerInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
