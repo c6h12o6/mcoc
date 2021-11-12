@@ -217,6 +217,7 @@ const (
     Nimrod
     AntiVenom
     Knull
+    Nebula
     // This should always be last
     MaxHeroVal
 )

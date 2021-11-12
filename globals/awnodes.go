@@ -271,6 +271,7 @@ var levels = map[HeroVal]int {
     Nimrod:4,
     AntiVenom:1,
     Knull:1,
+    Nebula:1,
     Empty:0,
 }
     
