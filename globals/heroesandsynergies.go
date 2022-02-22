@@ -224,6 +224,8 @@ const (
     Kraven
     Toad
     Sauron
+    MistyKnight
+    CaptainAmericaSamWilson
     // This should always be last
     MaxHeroVal
 )

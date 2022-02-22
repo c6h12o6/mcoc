@@ -277,6 +277,8 @@ var levels = map[HeroVal]int {
     Kraven:2,
     Toad:3,
     Sauron:3,
+    MistyKnight:2,
+    CaptainAmericaSamWilson:3,
     Empty:0,
 }
     
