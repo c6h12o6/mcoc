@@ -1,6 +1,6 @@
 package main
 
-import . "github.com/c6h12o6/mcoc/globals"
+//import . "github.com/c6h12o6/mcoc/globals"
 import "github.com/c6h12o6/mcoc/oauth"
 
 import "fmt"
@@ -39,7 +39,7 @@ import (
 var mcoc *mcocServer
 
 func newServer() *mcocServer {
-	db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb?parseTime=true", sqlPassword))
+	db, err := sql.Open("mysql", fmt.Sprintf("brand:%s@tcp(%s)/champdb?parseTime=true", sqlPassword, sqlHost))
 	if err != nil {
 		log.Fatalf("error creating db connection: %v\n", err)
 	}
@@ -146,6 +146,42 @@ func postSetNodePreferences(c *gin.Context) {
 
   c.String(200, "noice")
 }
+
+
+type setPlayerInfoPost struct {
+  Suicides int
+  Md int
+  Ign string
+}
+
+func postSetPlayerInfo(c *gin.Context) {
+
+  var req setPlayerInfoPost
+  fmt.Printf("set player info\n")
+  if err := c.BindJSON(&req); err != nil {
+    fmt.Printf("hiii %v\n", err)
+    return
+  }
+  fmt.Printf("bound json %v\n", req)
+
+  sess := c.GetHeader("SESSION-ID")
+  pbReq := pb.SetPlayerInfoRequest{
+    SessionId: sess,
+    Name: req.Ign,
+    Suicides: int32(req.Suicides),
+    MysticDispersion: int32(req.Md),
+  }
+
+  fmt.Printf("pb %v\n", pbReq)
+  _, err := mcoc.SetPlayerInfo(context.WithValue(context.Background(), "session", sess), &pbReq)
+  if err != nil {
+    fmt.Printf("lame: %v\n", err)
+    return
+  }
+
+  c.String(200, "PlayerInfo Set!")
+}
+
 
 
 func postListPlayers(c *gin.Context) {
@@ -293,7 +329,7 @@ func getAllChamps(c *gin.Context) {
   sess := c.GetHeader("SESSION-ID")
   resp, err := mcoc.GetAllChamps(context.WithValue(context.Background(), "session", sess), &pbReq)
   if err != nil {
-    fmt.Printf("bad: %v\n", err)
+    fmt.Printf("Unable to get all champs: %v\n", err)
     return
   }
   m := jsonpb.Marshaler{}
@@ -324,7 +360,7 @@ func postWarDefense(c *gin.Context) {
 
   resp, err := mcoc.GetWarDefense(context.WithValue(context.Background(), "session", sess), &pbReq)
   if err != nil {
-    fmt.Printf("bad: %v\n", err)
+    fmt.Printf("Unable to get war defense: %v\n", err)
     return
   }
   m := jsonpb.Marshaler{}
@@ -438,7 +474,7 @@ func postCreateAlliance(c *gin.Context) {
   sess := c.GetHeader("SESSION-ID")
   resp, err := mcoc.CreateAlliance(context.WithValue(context.Background(), "session", sess), &pbReq)
   if err != nil {
-    fmt.Printf("bad: %v\n", err)
+    fmt.Printf("Unable to Create Alliance: %v\n", err)
     c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
     return
   }
@@ -473,7 +509,7 @@ func postAllianceInfo(c *gin.Context) {
   sess := c.GetHeader("SESSION-ID")
   resp, err := mcoc.GetAllianceInfo(context.WithValue(context.Background(), "session", sess), &pbReq)
   if err != nil {
-    fmt.Printf("bad: %v\n", err)
+    fmt.Printf("Unable to Get Alliance Info: %v\n", err)
     return
   }
   m := jsonpb.Marshaler{}
@@ -488,7 +524,7 @@ func postAllianceInfo(c *gin.Context) {
   c.String(200, result)
 }
 type playerInfoPost struct {
-  SessionId string `json:"session_id"`
+  SessionId string `json:"session"`
 }
 
 func postPlayerInfo(c *gin.Context) {
@@ -504,10 +540,10 @@ func postPlayerInfo(c *gin.Context) {
   sess := c.GetHeader("SESSION-ID")
   resp, err := mcoc.GetPlayerInfo(context.WithValue(context.Background(), "session", sess), &pbReq)
   if err != nil {
-    fmt.Printf("bad: %v\n", err)
+    fmt.Printf("Unable to get Player Info: %v\n", err)
     return
   }
-  m := jsonpb.Marshaler{}
+  m := jsonpb.Marshaler{EmitDefaults: true}
   result, err := m.MarshalToString(resp)
   if err != nil {
     fmt.Printf("booo: %v\n", err)
@@ -551,6 +587,7 @@ func main() {
   r.POST("/CreateAlliance", postCreateAlliance)
   r.POST("/AllianceInfo", postAllianceInfo)
   r.POST("/PlayerInfo", postPlayerInfo)
+  r.POST("/SetPlayerInfo", postSetPlayerInfo)
   r.POST("/api/v1/auth/google", postGoogleAuth)
   go r.Run("0.0.0.0:8080")
 

@@ -11,7 +11,6 @@ import "context"
 
 import (
 	"database/sql"
-	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/go-sql-driver/mysql"
 
   //pbtools "github.com/protocolbuffers/protobuf-go"
@@ -31,6 +30,7 @@ import (
 )
 
 var sqlPassword = os.Getenv("CLOUD_SQL_PASSWORD")
+var sqlHost = os.Getenv("SQL_HOST")
 
 type mcocServer struct {
 	pb.UnimplementedMcocServiceServer
@@ -117,20 +117,45 @@ func (s *mcocServer) GetAllianceInfo(ctx context.Context, req *pb.GetAllianceInf
 func (s *mcocServer) GetPlayerInfo(ctx context.Context, req *pb.GetPlayerInfoRequest) (*pb.GetPlayerInfoResponse, error) {
   resp := pb.GetPlayerInfoResponse{}
 
+  fmt.Printf("Get Player id from session id: %v\n", req.SessionId)
   pid, err := s.getPlayerIdFromSession(req.SessionId)
   if err != nil {
     return nil, err
   }
-	err = s.db.QueryRow("Select name from players where id like ?", pid).Scan(
+  fmt.Printf("Getting info for player id: %v\n", pid)
+	err = s.db.QueryRow("Select name, suicides, mystic_dispersion from players where id like ?", pid).Scan(
     &resp.Name,
+    &resp.Suicides,
+    &resp.MysticDispersion,
   )
+  if err != nil {
+    return nil, err
+  }
+  fmt.Printf("resp.Suicides was %v %v\n", resp.Suicides, resp.MysticDispersion)
+
+  return &resp, nil
+}
+
+func (s *mcocServer) SetPlayerInfo(ctx context.Context, req *pb.SetPlayerInfoRequest) (*pb.SetPlayerInfoResponse, error) {
+  resp := pb.SetPlayerInfoResponse{}
+
+  fmt.Printf("Set Player id from session id: %v\n", req.SessionId)
+  pid, err := s.getPlayerIdFromSession(req.SessionId)
+  if err != nil {
+    return nil, err
+  }
+  fmt.Printf("Setting info for player id: %v\n", pid)
+  _, err = s.db.Exec("Update players Set name=?, suicides=?, mystic_dispersion=? where id like ?",
+      req.Name,
+      req.Suicides,
+      req.MysticDispersion,
+      pid)
   if err != nil {
     return nil, err
   }
 
   return &resp, nil
 }
-
 
 
 func (s *mcocServer) getPlayerIdFromSession(sessionId string) (int, error) {

@@ -143,4 +143,14 @@ message GetPlayerInfoRequest {
 }
 message GetPlayerInfoResponse {
   string name = 1;
+  int32  suicides = 2;
+  int32 mystic_dispersion = 3;
 }
+
+message SetPlayerInfoRequest {
+  string session_id = 1;
+  string name = 2;
+  int32  suicides = 3;
+  int32 mystic_dispersion = 4;
+}
+message SetPlayerInfoResponse {}

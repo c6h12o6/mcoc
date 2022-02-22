@@ -11,6 +11,9 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/itsjamie/gin-cors v0.0.0-20160420130702-97b4a9da7933
 	go4.org v0.0.0-20201209231011-d4a079459e60 // indirect
+	golang.org/x/mod v0.5.1 // indirect
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
+	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/api v0.58.0
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1

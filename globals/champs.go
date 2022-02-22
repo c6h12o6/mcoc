@@ -32,7 +32,9 @@ func sigValue(a Champ) float32 {
 }
 
 func ChampValue(a Champ) float32 {
-	if a.Stars == 6 && a.Level == 3 {
+  if a.Stars == 6 && a.Level == 4 {
+    return 150 * sigValue(a)
+  } else if a.Stars == 6 && a.Level == 3 {
 		return 130 * sigValue(a)
 	} else if a.Stars == 6 && a.Level == 2 {
 		return 110 * sigValue(a)
@@ -81,5 +83,5 @@ func ChampScore(a Champ) float32 {
 }
 
 func (c Champ) String() string {
-	return fmt.Sprintf("%v (%v/%v)", c.Champ.String(), c.Stars, c.Level)
+	return fmt.Sprintf("%v (%v/%v) %v", c.Champ.String(), c.Stars, c.Level)
 }

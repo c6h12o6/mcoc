@@ -17,7 +17,7 @@ import pb "github.com/c6h12o6/mcoc/proto"
 
 import (
 	"database/sql"
-	_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
+	//_ "github.com/GoogleCloudPlatform/cloudsql-proxy/proxy/dialers/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 )
@@ -27,6 +27,7 @@ var problemChild map[string]int
 var problemChildLock sync.Mutex
 
 var sqlPassword = os.Getenv("CLOUD_SQL_PASSWORD")
+var sqlHost = os.Getenv("SQL_HOST")
 
 // combinations is a helper function for creating all possible combinations of
 // values from "iterable" in groups of "r"
@@ -512,8 +513,9 @@ func Insert(sorted []Champ, champ Champ) []Champ {
 	return sorted
 }
 
-func getBg(bg int) (map[string][]Champ, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
+func getBg(alliance, bg int) (map[string][]Champ, error) {
+	//db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
+	db, err := sql.Open("mysql", fmt.Sprintf("brand:%s@tcp(%s)/champdb?parseTime=true", sqlPassword, sqlHost))
 	defer db.Close()
 
 	ret := map[string][]Champ{}
@@ -523,7 +525,7 @@ func getBg(bg int) (map[string][]Champ, error) {
 	}
 
 	rows, err := db.Query(`select id, suicides, mystic_dispersion, name from players
-                         where alliance = ? AND BG = ?`, 1, bg)
+                         where alliance = ? AND BG = ?`, alliance, bg)
 	if err != nil {
 		return ret, err
 	}
@@ -555,7 +557,7 @@ func getBg(bg int) (map[string][]Champ, error) {
 }
 
 func getWarMap(alliance int) (map[int][]HeroVal, error) {
-	db, err := sql.Open("mysql", fmt.Sprintf("root:%s@cloudsql(homeproject:us-east1:champdb)/champdb", sqlPassword))
+	db, err := sql.Open("mysql", fmt.Sprintf("brand:%s@tcp(%s)/champdb?parseTime=true", sqlPassword, sqlHost))
 	defer db.Close()
 
 	ret := map[int][]HeroVal{}
@@ -967,11 +969,11 @@ type Player struct {
 }
 
 
-func algo2Helper(roster map[string][]Champ) ([]PlayerDefenders, error) {
+func algo2Helper(alliance int, roster map[string][]Champ) ([]PlayerDefenders, error) {
 
 
   algo2Memo = map[Algo2Memo]string{}
-  defenderPreferences, err := getWarMap(1)
+  defenderPreferences, err := getWarMap(alliance)
   if err != nil {
     return nil, err
   }
@@ -1021,9 +1023,9 @@ func algo2Helper(roster map[string][]Champ) ([]PlayerDefenders, error) {
 func BestWarDefense(alliance int, bg int) ([]PlayerDefenders, error) {
 	//writeBg(bg1)
   fmt.Printf("----------------------------------------- JBF\n")
-	bgRoster, err := getBg(bg)
+	bgRoster, err := getBg(alliance, bg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return algo2Helper(bgRoster)
+	return algo2Helper(alliance, bgRoster)
 }

@@ -218,6 +218,12 @@ const (
     AntiVenom
     Knull
     Nebula
+    KingGroot
+    Sersei
+    Ikaris
+    Kraven
+    Toad
+    Sauron
     // This should always be last
     MaxHeroVal
 )

@@ -272,6 +272,11 @@ var levels = map[HeroVal]int {
     AntiVenom:1,
     Knull:1,
     Nebula:1,
+    Sersei:1,
+    Ikaris:1,
+    Kraven:2,
+    Toad:3,
+    Sauron:3,
     Empty:0,
 }
     
@@ -480,6 +485,7 @@ var sigRelevance = map[HeroVal]SigRelevance {
     KittyPryde:HS,
     Nimrod:NA,
     Empty:UN,
+    Knull:HS,
 }
 
 var Mystics = map[HeroVal]bool {
